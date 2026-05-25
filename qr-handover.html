@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>QR Handover | Patient & Doctor</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .bg-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(3px); z-index: 0; }
+        .app-container { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+        .main-card { background: rgba(255,255,255,0.96); border-radius: 2rem; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+        .card-header { background: linear-gradient(120deg, #0f4c5c, #1b6b7a); padding: 1.2rem 2rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .card-header h1 { color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 60px; font-size: 0.8rem; }
+        .tabs { display: flex; gap: 0.5rem; padding: 0 2rem; border-bottom: 1px solid #cce0e6; flex-wrap: wrap; }
+        .tab-btn { padding: 0.7rem 1.5rem; background: none; border: none; cursor: pointer; font-weight: 600; color: #1b6b7a; border-radius: 40px 40px 0 0; }
+        .tab-btn.active { background: #e0f2f5; color: #0f4c5c; border-bottom: 3px solid #1b6b7a; }
+        .tab-pane { display: none; padding: 1.8rem 2rem; }
+        .tab-pane.active { display: block; }
+        .form-row { display: flex; gap: 1.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; align-items: flex-end; }
+        .field { flex: 1; min-width: 180px; }
+        .field label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #1b6b7a; display: block; margin-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cce0e6; border-radius: 14px; font-family: inherit; }
+        .btn { background: #1b6b7a; color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-secondary { background: #5f7d95; }
+        .btn-warning { background: #ffc107; color: #1e4a5f; }
+        .patient-card { background: #f9fefd; border-radius: 1rem; padding: 1rem; margin-top: 1rem; border-left: 4px solid #1b6b7a; }
+        .status-badge { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 30px; font-size: 0.7rem; font-weight: bold; }
+        .status-admitted { background: #dc3545; color: white; }
+        .info-row { margin: 0.5rem 0; display: flex; flex-wrap: wrap; }
+        .info-label { width: 140px; font-weight: 700; color: #1b6b7a; }
+        .info-value { flex: 1; }
+        hr { margin: 0.8rem 0; border: 0; border-top: 1px solid #cce0e6; }
+        .log-entry { background: #f4fafa; border-radius: 0.8rem; padding: 0.6rem; margin-bottom: 0.6rem; border-left: 3px solid #1b6b7a; }
+        .log-time { font-size: 0.7rem; color: #5f7d95; margin-bottom: 0.2rem; }
+        .log-doctor { font-weight: bold; color: #0f4c5c; margin-bottom: 0.2rem; }
+        .scanner-container { text-align: center; margin: 1rem 0; }
+        #qr-reader { width: 100%; max-width: 500px; margin: 0 auto; }
+        .pin-popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .pin-box { background: white; border-radius: 1rem; padding: 1.5rem; width: 350px; text-align: center; }
+        .pin-box input { width: 100%; text-align: center; font-size: 1.2rem; margin: 0.5rem 0; }
+        .error-msg-small { color: #c62828; font-size: 0.7rem; margin-top: -0.3rem; margin-bottom: 0.5rem; }
+        @media (max-width: 700px) { .form-row { flex-direction: column; } .info-label { width: 120px; } }
+    </style>
+</head>
+<body>
+<div class="bg-overlay"></div>
+<div class="app-container">
+    <div class="main-card">
+        <div class="card-header">
+            <h1><i class="fas fa-qrcode"></i> QR Handover System</h1>
+            <span class="badge">Patient Management | Scan QR | Handover Notes</span>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="patient">📋 Patient Records</button>
+            <button class="tab-btn" data-tab="scan">📷 Scan QR (Doctor)</button>
+        </div>
+        <!-- Patient Tab -->
+        <div id="patientTab" class="tab-pane active">
+            <div class="form-row">
+                <div class="field"><label>Patient ID</label><input type="text" id="patientIdInput" placeholder="e.g., HMS-1001"></div>
+                <div class="field"><button id="generateQRBtn" class="btn"><i class="fas fa-qrcode"></i> Generate QR</button></div>
+            </div>
+            <div id="qrResultArea" style="text-align: center;"></div>
+            <div id="fullPatientEditor" class="patient-card" style="display: none;">
+                <h3>Patient Record</h3>
+                <form id="fullPatientForm">
+                    <div class="form-row"><div class="field"><label>Name</label><input type="text" id="editName"></div>
+                    <div class="field"><label>Age</label><input type="number" id="editAge"></div>
+                    <div class="field"><label>Gender</label><select id="editGender"><option>Male</option><option>Female</option></select></div></div>
+                    <div class="form-row"><div class="field"><label>Blood Group</label><input type="text" id="editBloodGroup"></div>
+                    <div class="field"><label>Allergies</label><input type="text" id="editAllergies"></div></div>
+                    <div class="form-row"><div class="field"><label>Last Medical Review</label><input type="date" id="editLastReview"></div>
+                    <div class="field"><label>Emergency Summary</label><input type="text" id="editEmergencySummary"></div></div>
+                    <div class="form-row"><div class="field"><label>Emergency Instructions</label><textarea id="editInstructions" rows="2"></textarea></div></div>
+                    <hr><h4>Current Treatment</h4>
+                    <div class="form-row"><div class="field"><label>Medications</label><textarea id="editTreatment" rows="3"></textarea></div></div>
+                    <div class="form-row"><div class="field"><label>Plan</label><textarea id="editPlan" rows="2"></textarea></div></div>
+                    <hr><h4>Emergency Contacts</h4>
+                    <div class="form-row"><div class="field"><label>Contact Name</label><input type="text" id="editContactName"></div>
+                    <div class="field"><label>Relation</label><input type="text" id="editContactRelation"></div></div>
+                    <div class="form-row"><div class="field"><label>Phone</label><input type="tel" id="editContactPhone"></div>
+                    <div class="field"><label>Alternate</label><input type="tel" id="editContactAlt"></div></div>
+                    <button type="submit" class="btn-secondary btn">Save All</button>
+                </form>
+                <h4 style="margin-top:1rem;">Doctor's Handover Log</h4>
+                <div id="logContainer" style="max-height:250px; overflow-y:auto;"></div>
+                <div class="form-row"><div class="field"><label>Handover Note</label><textarea id="newLogNote" rows="2"></textarea></div></div>
+                <button id="addLogBtn" class="btn-warning btn">Add Note (verify PIN)</button>
+            </div>
+        </div>
+        <!-- Scan Tab -->
+        <div id="scanTab" class="tab-pane">
+            <div class="scanner-container"><div id="qr-reader"></div><button id="restartScanBtn" class="btn" style="display:none;">Restart Scanner</button></div>
+            <div id="scanResultArea" class="patient-card" style="display: none;"></div>
+            <div id="scanErrorMsg" style="color:#dc3545; text-align:center;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Data
+    let patients = JSON.parse(localStorage.getItem('patients')) || [];
+    let medicalProfiles = JSON.parse(localStorage.getItem('medicalProfiles')) || {};
+    let treatmentPlans = JSON.parse(localStorage.getItem('treatmentPlans')) || {};
+    let doctorLogs = JSON.parse(localStorage.getItem('doctorLogs')) || {};
+    let admissions = JSON.parse(localStorage.getItem('bedAdmissions')) || [];
+    let emergencies = JSON.parse(localStorage.getItem('emergencies')) || [];
+    let doctors = JSON.parse(localStorage.getItem('doctors')) || {};
+
+    function isPinValid(pinExpiry) { return new Date() < new Date(pinExpiry); }
+
+    // Verify doctor and mark firstUsed if not already set
+    function verifyDoctor(mobile, pin) {
+        let doc = doctors[mobile];
+        if (!doc) return null;
+        if (doc.pin !== pin) return null;
+        if (!isPinValid(doc.pinExpiry)) {
+            alert("Your PIN has expired. Please request a new PIN using 'Forgot PIN' option.");
+            return null;
+        }
+        if (!doc.firstUsed) {
+            doc.firstUsed = new Date().toISOString();
+            localStorage.setItem('doctors', JSON.stringify(doctors));
+        }
+        return doc.name;
+    }
+
+    // Helper: filter non-digits in real time
+    function enforceDigitsOnly(inputElement) {
+        let value = inputElement.value;
+        let newValue = value.replace(/[^0-9]/g, '');
+        if (newValue !== value) {
+            inputElement.value = newValue;
+        }
+        return newValue;
+    }
+
+    // Authentication popup with 11-digit validation and no letters allowed
+    function requestDoctorAuthentication(callback) {
+        let popup = document.createElement('div');
+        popup.className = 'pin-popup';
+        popup.innerHTML = `
+            <div class="pin-box">
+                <h3><i class="fas fa-lock"></i> Doctor Authentication</h3>
+                <p>Enter registered mobile number (11 digits) and PIN</p>
+                <input type="tel" id="authMobile" placeholder="03XXXXXXXXX" maxlength="11" inputmode="numeric" style="margin-bottom:0.3rem;">
+                <div id="mobileError" class="error-msg-small"></div>
+                <input type="password" id="authPin" placeholder="6-digit PIN" maxlength="6" inputmode="numeric" style="margin-bottom:0.5rem;">
+                <div style="margin-top:1rem;">
+                    <button id="authSubmitBtn" class="btn">Verify</button>
+                    <button id="authCancelBtn" class="btn-secondary">Cancel</button>
+                </div>
+                <hr>
+                <button id="forgotPinBtn" style="background:none; border:none; color:#1b6b7a; margin-top:0.5rem; cursor:pointer;">Forgot PIN / Expired?</button>
+            </div>
+        `;
+        document.body.appendChild(popup);
+        let mobileInput = popup.querySelector('#authMobile');
+        let pinInput = popup.querySelector('#authPin');
+        let mobileError = popup.querySelector('#mobileError');
+        mobileInput.focus();
+
+        // Enforce only digits on mobile input
+        mobileInput.addEventListener('input', function() {
+            let digits = enforceDigitsOnly(this);
+            if (digits.length === 11 && /^[0-9]{11}$/.test(digits)) {
+                mobileError.innerText = '';
+            } else {
+                mobileError.innerText = 'Must be exactly 11 digits (0-9 only)';
+            }
+        });
+
+        // Optional: enforce digits on PIN field (though PIN should be digits only)
+        pinInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        popup.querySelector('#authSubmitBtn').onclick = () => {
+            let mobile = mobileInput.value.trim();
+            let pin = pinInput.value.trim();
+            if (!/^[0-9]{11}$/.test(mobile)) {
+                mobileError.innerText = 'Mobile must be exactly 11 digits (0-9)';
+                return;
+            }
+            let doctorName = verifyDoctor(mobile, pin);
+            if (doctorName) {
+                popup.remove();
+                callback(doctorName);
+            } else {
+                alert("Invalid mobile or PIN, or PIN expired.");
+                pinInput.value = '';
+                pinInput.focus();
+            }
+        };
+        popup.querySelector('#authCancelBtn').onclick = () => { popup.remove(); callback(null); };
+        popup.querySelector('#forgotPinBtn').onclick = () => {
+            let mobile = mobileInput.value.trim();
+            if (!/^[0-9]{11}$/.test(mobile)) {
+                mobileError.innerText = 'Enter a valid 11-digit mobile number first.';
+                return;
+            }
+            let doc = doctors[mobile];
+            if (doc) {
+                let newPin = Math.floor(100000 + Math.random() * 900000).toString();
+                let newExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+                doc.pin = newPin;
+                doc.pinExpiry = newExpiry;
+                doc.firstUsed = null;  // reset activation status
+                localStorage.setItem('doctors', JSON.stringify(doctors));
+                alert(`📱 SIMULATED SMS to ${mobile}:\nNew PIN: ${newPin}\nValid for 5 minutes.`);
+                pinInput.value = '';
+                pinInput.focus();
+            } else {
+                alert("Mobile number not registered. Contact admin.");
+            }
+        };
+    }
+
+    // Patient helpers (unchanged)
+    function isPatientAdmitted(patientId) {
+        let bedAdmit = admissions.find(a => a.patientId === patientId && !a.dischargeDate);
+        if (bedAdmit) return true;
+        let emergencyAdmit = emergencies.find(e => e.patientId === patientId && e.status === "Admitted");
+        return !!emergencyAdmit;
+    }
+    function getPatientById(patientId) { return patients.find(p => p.id === patientId); }
+    function ensurePatientExists(patientId) {
+        let p = getPatientById(patientId);
+        if (!p) {
+            p = { id: patientId, name: "Unknown", age: 0, gender: "Male", bloodGroup: "", allergy: "" };
+            patients.push(p);
+            localStorage.setItem('patients', JSON.stringify(patients));
+        }
+        return p;
+    }
+    function saveFullPatient(patientId) {
+        let patient = ensurePatientExists(patientId);
+        patient.name = document.getElementById('editName').value;
+        patient.age = parseInt(document.getElementById('editAge').value);
+        patient.gender = document.getElementById('editGender').value;
+        patient.bloodGroup = document.getElementById('editBloodGroup').value;
+        patient.allergy = document.getElementById('editAllergies').value;
+        let idx = patients.findIndex(p => p.id === patientId);
+        if (idx !== -1) patients[idx] = patient;
+        else patients.push(patient);
+        localStorage.setItem('patients', JSON.stringify(patients));
+        let profile = {
+            lastReview: document.getElementById('editLastReview').value,
+            emergencySummary: document.getElementById('editEmergencySummary').value,
+            emergencyInstructions: document.getElementById('editInstructions').value,
+            contactName: document.getElementById('editContactName').value,
+            contactRelation: document.getElementById('editContactRelation').value,
+            contactPhone: document.getElementById('editContactPhone').value,
+            contactAlt: document.getElementById('editContactAlt').value
+        };
+        medicalProfiles[patientId] = profile;
+        localStorage.setItem('medicalProfiles', JSON.stringify(medicalProfiles));
+        treatmentPlans[patientId] = {
+            treatment: document.getElementById('editTreatment').value,
+            plan: document.getElementById('editPlan').value
+        };
+        localStorage.setItem('treatmentPlans', JSON.stringify(treatmentPlans));
+        alert('Patient data saved.');
+        generateQR(patientId);
+    }
+    function addDoctorLog(patientId, noteText, doctorName) {
+        let logs = doctorLogs[patientId] || [];
+        logs.unshift({ timestamp: new Date().toLocaleString(), doctor: doctorName, note: noteText.trim() });
+        doctorLogs[patientId] = logs;
+        localStorage.setItem('doctorLogs', JSON.stringify(doctorLogs));
+        renderLogs(patientId);
+        let scanDiv = document.getElementById('scanResultArea');
+        if (scanDiv && scanDiv.style.display === 'block' && scanDiv.getAttribute('data-patient-id') === patientId)
+            displayFullPatientInScan(patientId);
+    }
+    function renderLogs(patientId) {
+        let container = document.getElementById('logContainer');
+        if (!container) return;
+        let logs = doctorLogs[patientId] || [];
+        if (logs.length === 0) { container.innerHTML = '<div>No handover notes yet.</div>'; return; }
+        container.innerHTML = logs.map(log => `
+            <div class="log-entry">
+                <div class="log-time">${log.timestamp}</div>
+                <div class="log-doctor">${log.doctor}</div>
+                <div>${log.note}</div>
+            </div>
+        `).join('');
+    }
+    function generateQR(patientId) {
+        if (!patientId) return;
+        let patient = ensurePatientExists(patientId);
+        let profile = medicalProfiles[patientId] || {};
+        let treatment = treatmentPlans[patientId] || { treatment: '', plan: '' };
+        let qrContainer = document.getElementById('qrResultArea');
+        qrContainer.innerHTML = '<div class="patient-card" style="background:white; text-align:center;" id="qrCanvasArea"></div>';
+        let canvasDiv = document.getElementById('qrCanvasArea');
+        QRCode.toCanvas(`HMS:${patientId}`, { width: 200, margin: 2 }, (err, canvas) => {
+            if (err) return;
+            canvasDiv.innerHTML = '';
+            canvasDiv.appendChild(canvas);
+            let downloadLink = document.createElement('a');
+            downloadLink.href = canvas.toDataURL();
+            downloadLink.download = `QR_${patientId}.png`;
+            downloadLink.textContent = ' Download QR';
+            downloadLink.className = 'btn btn-secondary';
+            canvasDiv.appendChild(downloadLink);
+        });
+        document.getElementById('editName').value = patient.name || '';
+        document.getElementById('editAge').value = patient.age || '';
+        document.getElementById('editGender').value = patient.gender || 'Male';
+        document.getElementById('editBloodGroup').value = patient.bloodGroup || '';
+        document.getElementById('editAllergies').value = patient.allergy || '';
+        document.getElementById('editLastReview').value = profile.lastReview || '';
+        document.getElementById('editEmergencySummary').value = profile.emergencySummary || '';
+        document.getElementById('editInstructions').value = profile.emergencyInstructions || '';
+        document.getElementById('editContactName').value = profile.contactName || '';
+        document.getElementById('editContactRelation').value = profile.contactRelation || '';
+        document.getElementById('editContactPhone').value = profile.contactPhone || '';
+        document.getElementById('editContactAlt').value = profile.contactAlt || '';
+        document.getElementById('editTreatment').value = treatment.treatment || '';
+        document.getElementById('editPlan').value = treatment.plan || '';
+        document.getElementById('fullPatientEditor').style.display = 'block';
+        renderLogs(patientId);
+    }
+    function displayFullPatientInScan(patientId) {
+        let patient = getPatientById(patientId);
+        if (!patient) { document.getElementById('scanResultArea').innerHTML = '<div>Patient not found</div>'; return; }
+        let admitted = isPatientAdmitted(patientId);
+        let profile = medicalProfiles[patientId] || {};
+        let treatment = treatmentPlans[patientId] || { treatment: '', plan: '' };
+        let logs = doctorLogs[patientId] || [];
+        let scanDiv = document.getElementById('scanResultArea');
+        scanDiv.setAttribute('data-patient-id', patientId);
+        if (!admitted) {
+            scanDiv.innerHTML = `<div style="text-align:center;"><i class="fas fa-ban"></i><h3>QR Inactive</h3><p>Patient discharged. No medical data shown for privacy.</p></div>`;
+            scanDiv.style.display = 'block';
+            return;
+        }
+        scanDiv.innerHTML = `
+            <div style="display:flex; justify-content:space-between;"><h3>${patient.name} (${patient.id})</h3><span class="status-badge status-admitted">Admitted</span></div>
+            <div class="info-row"><div class="info-label">Age/Gender:</div><div>${patient.age} / ${patient.gender}</div></div>
+            <div class="info-row"><div class="info-label">Blood Group:</div><div>${patient.bloodGroup || 'Unknown'}</div></div>
+            <div class="info-row"><div class="info-label">Allergies:</div><div>${patient.allergy || 'None'}</div></div>
+            <hr><h4>Emergency Profile</h4>
+            <div class="info-row"><div class="info-label">Last Review:</div><div>${profile.lastReview || '-'}</div></div>
+            <div class="info-row"><div class="info-label">Summary:</div><div>${profile.emergencySummary || '-'}</div></div>
+            <div class="info-row"><div class="info-label">Instructions:</div><div>${profile.emergencyInstructions || '-'}</div></div>
+            <hr><h4>Current Treatment</h4>
+            <div class="info-row"><div class="info-label">Medications:</div><div><pre style="margin:0;">${treatment.treatment || '-'}</pre></div></div>
+            <div class="info-row"><div class="info-label">Plan:</div><div><pre style="margin:0;">${treatment.plan || '-'}</pre></div></div>
+            <hr><h4>Handover Log</h4>
+            <div style="max-height:200px; overflow-y:auto;">${logs.length ? logs.map(l=>`<div class="log-entry"><div>${l.timestamp}</div><div><strong>${l.doctor}</strong></div><div>${l.note}</div></div>`).join('') : '<div>No notes.</div>'}</div>
+            <hr><h4>Add Handover Note</h4>
+            <textarea id="scanNewNote" rows="2" style="width:100%; margin-bottom:0.5rem;" placeholder="e.g., Patient stable"></textarea>
+            <button id="scanAddNoteBtn" class="btn-warning btn">Add Note (verify PIN)</button>
+            <button id="scanBackBtn" class="btn btn-secondary">Scan Another</button>
+        `;
+        scanDiv.style.display = 'block';
+        document.getElementById('scanAddNoteBtn').onclick = () => {
+            let note = document.getElementById('scanNewNote').value;
+            if (!note) return alert("Write a note");
+            requestDoctorAuthentication((doctorName) => {
+                if (doctorName) {
+                    addDoctorLog(patientId, note, doctorName);
+                    document.getElementById('scanNewNote').value = '';
+                    displayFullPatientInScan(patientId);
+                }
+            });
+        };
+        document.getElementById('scanBackBtn').onclick = () => {
+            scanDiv.style.display = 'none';
+            if (html5QrCode && !html5QrCode.isScanning) startScanner();
+        };
+    }
+
+    // Scanner logic
+    let html5QrCode = null;
+    function startScanner() {
+        if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().then(() => initScanner()).catch(() => initScanner());
+        else initScanner();
+        function initScanner() {
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, onScanError);
+            document.getElementById('restartScanBtn').style.display = 'none';
+        }
+    }
+    function onScanSuccess(decodedText) {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop();
+            document.getElementById('restartScanBtn').style.display = 'inline-block';
+        }
+        let match = decodedText.match(/HMS:(\w+)/);
+        let patientId = match ? match[1] : decodedText.trim();
+        let patient = getPatientById(patientId);
+        if (!patient) {
+            document.getElementById('scanErrorMsg').innerHTML = '❌ Patient ID not found.';
+            return;
+        }
+        document.getElementById('scanErrorMsg').innerHTML = '';
+        displayFullPatientInScan(patientId);
+    }
+    function onScanError(err) {}
+    document.getElementById('restartScanBtn').onclick = () => startScanner();
+
+    // Event listeners
+    document.getElementById('generateQRBtn').addEventListener('click', () => { let pid = document.getElementById('patientIdInput').value.trim(); if(pid) generateQR(pid); else alert("Enter Patient ID"); });
+    document.getElementById('fullPatientForm').addEventListener('submit', (e) => { e.preventDefault(); let pid = document.getElementById('patientIdInput').value.trim(); if(pid) saveFullPatient(pid); });
+    document.getElementById('addLogBtn').addEventListener('click', () => {
+        let pid = document.getElementById('patientIdInput').value.trim();
+        let note = document.getElementById('newLogNote').value;
+        if (!pid || !note) { alert("Select patient and write note"); return; }
+        requestDoctorAuthentication((doctorName) => {
+            if (doctorName) {
+                addDoctorLog(pid, note, doctorName);
+                document.getElementById('newLogNote').value = '';
+            }
+        });
+    });
+
+    // Tab switching
+    let tabs = document.querySelectorAll('.tab-btn');
+    let panes = document.querySelectorAll('.tab-pane');
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            let tabId = btn.getAttribute('data-tab');
+            panes.forEach(p => p.classList.remove('active'));
+            tabs.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+            if (tabId === 'scan') { if (html5QrCode) html5QrCode.stop().catch(e=>console.log); startScanner(); document.getElementById('scanResultArea').style.display = 'none'; document.getElementById('scanErrorMsg').innerHTML = ''; }
+            else if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e=>console.log);
+        });
+    });
+
+    window.onload = () => {
+        if (patients.length) document.getElementById('patientIdInput').value = patients[0].id;
+        else alert("No patients found. Please create a patient first.");
+    };
+    window.addEventListener('beforeunload', () => { if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(e=>console.log); });
+</script>
+</body>
+</html>
