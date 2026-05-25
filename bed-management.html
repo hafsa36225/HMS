@@ -1,0 +1,324 @@
+<!-- Is file ko bed-management.html mein replace kar dein -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bed Management | Auto Next Bed</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Same styling as before – compact for brevity, but keep full */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+        .app-container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; }
+        .main-card {
+            background: rgba(255,255,255,0.96);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            background: linear-gradient(120deg, #1e6f5c, #289672);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h1 { color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 60px; font-size: 0.8rem; }
+        .summary-row { display: flex; gap: 1.5rem; margin: 1.5rem 2rem; flex-wrap: wrap; }
+        .summary-card { flex:1; background: white; border-radius: 1.2rem; padding:1rem; text-align:center; border:1px solid #cce0e6; }
+        .summary-card .number { font-size:1.8rem; font-weight:700; color:#289672; }
+        .tabs { display: flex; gap:0.5rem; padding:0 2rem; border-bottom:1px solid #cce0e6; flex-wrap:wrap; }
+        .tab-btn { padding:0.7rem 1.5rem; background:none; border:none; cursor:pointer; font-weight:600; color:#1e6f5c; }
+        .tab-btn.active { background:#e0f2e9; border-bottom:3px solid #289672; }
+        .tab-pane { display:none; padding:1.8rem 2rem; }
+        .tab-pane.active { display:block; }
+        .form-row { display:flex; gap:1.5rem; margin-bottom:5rem; flex-wrap:wrap; }
+        .field { flex:1; min-width:180px; }
+        .field label { font-size:0.7rem; font-weight:700; text-transform:uppercase; color:#1e6f5c; display:block; margin-bottom:5px; }
+        .field input, .field select { width:100%; padding:10px 12px; border:1px solid #cce0e6; border-radius:14px; }
+        .btn-submit { background:#289672; color:white; border:none; padding:10px 20px; border-radius:40px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+        .btn-secondary { background:#5f7d95; }
+        .btn-auto { background:#ffc107; color:#1e6f5c; margin-left:0.5rem; }
+        .bed-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:1rem; margin-top:1.5rem; }
+        .bed-card { background:white; border-radius:1rem; padding:0.8rem; text-align:center; border:1px solid #cce0e6; cursor:pointer; }
+        .bed-status { font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:30px; display:inline-block; margin-top:0.3rem; }
+        .status-available { background:#d4edda; color:#155724; }
+        .status-occupied { background:#f8d7da; color:#721c24; }
+        .search-box { display:flex; align-items:center; background:#f1f5f9; border-radius:60px; padding:0.2rem 0.2rem 0.2rem 1rem; }
+        .search-box input { border:none; padding:6px 10px; width:200px; outline:none; }
+        .list-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; }
+        table { width:100%; border-collapse:collapse; }
+        th, td { padding:10px; text-align:left; border-bottom:1px solid #e0f0e5; }
+        .edit-btn, .delete-btn, .assign-btn { border:none; padding:4px 10px; border-radius:30px; margin:0 2px; cursor:pointer; }
+        .edit-btn { background:#e0f2e9; color:#1e6f5c; }
+        .delete-btn { background:#ffe4e2; color:#b33b2c; }
+        @media (max-width:700px) { .form-row { flex-direction:column; margin-bottom:2rem; } }
+    </style>
+</head>
+<body>
+<div class="bg-overlay"></div>
+<div class="app-container">
+    <div class="main-card">
+        <div class="card-header">
+            <h1><i class="fas fa-bed"></i> Bed Management (Auto Next Bed)</h1>
+            <span class="badge">Smart Suggestion | Auto Assign</span>
+        </div>
+        <div class="summary-row">
+            <div class="summary-card"><h3>Total Beds</h3><div class="number" id="totalBeds">0</div></div>
+            <div class="summary-card"><h3>Occupied</h3><div class="number" id="occupiedBeds">0</div></div>
+            <div class="summary-card"><h3>Vacant</h3><div class="number" id="vacantBeds">0</div></div>
+            <div class="summary-card"><h3>Maintenance</h3><div class="number" id="maintenanceBeds">0</div></div>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="grid">🛏️ Bed Grid</button>
+            <button class="tab-btn" data-tab="manage">📋 Manage Beds</button>
+            <button class="tab-btn" data-tab="assign">👤 Assign Patient</button>
+        </div>
+        <!-- Grid Tab -->
+        <div id="gridTab" class="tab-pane active">
+            <div class="list-toolbar"><h2>Bed Layout</h2><div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchBedGrid" placeholder="Search..."></div></div>
+            <div id="bedGridContainer" class="bed-grid"></div>
+        </div>
+        <!-- Manage Beds Tab -->
+        <div id="manageTab" class="tab-pane">
+            <div class="form-section">
+                <h2>Add New Bed</h2>
+                <form id="addBedForm">
+                    <div class="form-row">
+                        <div class="field"><label>Bed Number</label><input type="text" id="bedNumber" placeholder="e.g., ER-03" required></div>
+                        <div class="field"><label>Ward</label><select id="bedWard"><option>Emergency Ward</option><option>ICU</option><option>General Ward</option><option>Pediatric Ward</option><option>Private Room</option></select></div>
+                        <div class="field"><label>Status</label><select id="bedStatus"><option value="available">Available</option><option value="occupied">Occupied</option><option value="maintenance">Maintenance</option></select></div>
+                    </div>
+                    <div class="form-row full"><div class="field full-width"><label>Notes</label><input type="text" id="bedNotes"></div></div>
+                    <button type="submit" class="btn-submit">Add Bed</button>
+                </form>
+            </div>
+            <div class="list-section"><h2>All Beds</h2><div class="table-wrapper"><table id="bedsTable"><thead><tr><th>Bed #</th><th>Ward</th><th>Status</th><th>Patient</th><th>Actions</th></tr></thead><tbody id="bedsTableBody"></tbody></table></div></div>
+        </div>
+        <!-- Assign Patient Tab (with Auto Next Bed button) -->
+        <div id="assignTab" class="tab-pane">
+            <div class="form-section">
+                <h2>Assign Patient</h2>
+                <form id="assignForm">
+                    <div class="form-row">
+                        <div class="field"><label>Patient</label><select id="assignPatientId" required></select></div>
+                        <div class="field"><label>Select Ward (for auto next bed)</label><select id="assignWardFilter"><option value="">-- Any Ward --</option><option>Emergency Ward</option><option>ICU</option><option>General Ward</option><option>Pediatric Ward</option><option>Private Room</option></select>
+                        <button type="button" id="autoNextBedBtn" class="btn-auto" style="margin-top:0.3rem;"><i class="fas fa-magic"></i> Auto Next Free Bed</button></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field"><label>Select Bed</label><select id="assignBedId" required></select></div>
+                        <div class="field"><label>Admit Date</label><input type="date" id="admitDate" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field"><label>Expected Discharge</label><input type="date" id="expectedDischarge"></div>
+                        <div class="field"><label>Diagnosis</label><input type="text" id="assignNotes"></div>
+                    </div>
+                    <button type="submit" class="btn-submit">Assign Patient</button>
+                </form>
+            </div>
+            <div class="list-section"><h2>Current Admissions</h2><div class="table-wrapper"><table id="admissionsTable"><thead><tr><th>Patient</th><th>Bed</th><th>Ward</th><th>Admit Date</th><th>Actions</th></tr></thead><tbody id="admissionsTableBody"></tbody></table></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let beds = JSON.parse(localStorage.getItem('hospitalBeds')) || [];
+    let admissions = JSON.parse(localStorage.getItem('bedAdmissions')) || [];
+    let patients = JSON.parse(localStorage.getItem('patients')) || [];
+
+    function updateSummary() {
+        document.getElementById('totalBeds').innerText = beds.length;
+        document.getElementById('occupiedBeds').innerText = beds.filter(b=>b.status==='occupied').length;
+        document.getElementById('vacantBeds').innerText = beds.filter(b=>b.status==='available').length;
+        document.getElementById('maintenanceBeds').innerText = beds.filter(b=>b.status==='maintenance').length;
+    }
+    function renderBedGrid(f="") {
+        let container = document.getElementById('bedGridContainer');
+        let filtered = beds.filter(b => !f || b.number.toLowerCase().includes(f.toLowerCase()) || b.ward.toLowerCase().includes(f.toLowerCase()));
+        container.innerHTML = "";
+        filtered.forEach(bed => {
+            let adm = admissions.find(a => a.bedId === bed.id && !a.dischargeDate);
+            let patientName = adm ? (patients.find(p=>p.id===adm.patientId)?.name||'') : '';
+            let statusClass = bed.status==='available'?'status-available':(bed.status==='occupied'?'status-occupied':'status-maintenance');
+            let statusText = bed.status==='available'?'Available':(bed.status==='occupied'?'Occupied':'Maintenance');
+            let card = document.createElement('div'); card.className='bed-card';
+            card.innerHTML = `<div class="bed-number">${bed.number}</div><div class="bed-status ${statusClass}">${statusText}</div><div style="font-size:0.7rem;">${bed.ward}</div>${patientName?`<div style="font-size:0.7rem;"><i class="fas fa-user"></i> ${patientName}</div>`:''}`;
+            if(bed.status==='available') card.onclick = () => { document.getElementById('assignWardFilter').value = bed.ward; autoSelectNextBed(); document.querySelector('.tab-btn[data-tab="assign"]').click(); };
+            container.appendChild(card);
+        });
+    }
+    function renderBedsTable() {
+        let tbody = document.getElementById('bedsTableBody');
+        tbody.innerHTML = "";
+        beds.forEach((bed,idx)=>{
+            let adm = admissions.find(a=>a.bedId===bed.id && !a.dischargeDate);
+            let pName = adm ? (patients.find(p=>p.id===adm.patientId)?.name||'-') : '-';
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = bed.number;
+            row.insertCell(1).innerText = bed.ward;
+            row.insertCell(2).innerText = bed.status;
+            row.insertCell(3).innerText = pName;
+            let act = row.insertCell(4);
+            let eBtn = document.createElement('button'); eBtn.innerText='Edit'; eBtn.className='edit-btn'; eBtn.onclick=()=>editBed(idx);
+            let dBtn = document.createElement('button'); dBtn.innerText='Delete'; dBtn.className='delete-btn'; dBtn.onclick=()=>deleteBed(idx);
+            act.appendChild(eBtn); act.appendChild(dBtn);
+        });
+    }
+    function renderAdmissionsTable() {
+        let tbody = document.getElementById('admissionsTableBody');
+        let active = admissions.filter(a=>!a.dischargeDate);
+        tbody.innerHTML = "";
+        active.forEach((adm,idx)=>{
+            let p = patients.find(p=>p.id===adm.patientId);
+            let bed = beds.find(b=>b.id===adm.bedId);
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = p?.name||'Unknown';
+            row.insertCell(1).innerText = bed?.number||'-';
+            row.insertCell(2).innerText = bed?.ward||'-';
+            row.insertCell(3).innerText = adm.admitDate;
+            let act = row.insertCell(4);
+            let disBtn = document.createElement('button'); disBtn.innerText='Discharge'; disBtn.className='assign-btn'; disBtn.onclick=()=>dischargePatient(idx);
+            act.appendChild(disBtn);
+        });
+    }
+    function populatePatientDropdown() {
+        let sel = document.getElementById('assignPatientId');
+        sel.innerHTML = '<option value="">-- Choose Patient --</option>';
+        patients.forEach(p=>{ let opt = document.createElement('option'); opt.value=p.id; opt.textContent=`${p.name} (${p.id})`; sel.appendChild(opt); });
+    }
+    function populateBedDropdown(wardFilter = "") {
+        let sel = document.getElementById('assignBedId');
+        let available = beds.filter(b=>b.status==='available');
+        if(wardFilter) available = available.filter(b=>b.ward === wardFilter);
+        sel.innerHTML = '<option value="">-- Choose Bed --</option>';
+        available.forEach(b=>{ let opt = document.createElement('option'); opt.value=b.id; opt.textContent=`${b.number} (${b.ward})`; sel.appendChild(opt); });
+    }
+    // Auto select next free bed: automatically pick first available bed based on ward filter
+    function autoSelectNextBed() {
+        let ward = document.getElementById('assignWardFilter').value;
+        let available = beds.filter(b=>b.status==='available');
+        if(ward) available = available.filter(b=>b.ward === ward);
+        if(available.length === 0) {
+            alert("No free bed available in selected ward.");
+            return;
+        }
+        // Sort by bed number (natural order: ER-01, ER-02, etc.)
+        available.sort((a,b)=>a.number.localeCompare(b.number, undefined, {numeric:true}));
+        let nextBed = available[0];
+        let bedSelect = document.getElementById('assignBedId');
+        for(let i=0; i<bedSelect.options.length; i++) {
+            if(parseInt(bedSelect.options[i].value) === nextBed.id) {
+                bedSelect.selectedIndex = i;
+                break;
+            }
+        }
+        // Optional: show a small toast message
+        alert(`Auto selected bed: ${nextBed.number} (${nextBed.ward})`);
+    }
+    function addBed(e){
+        e.preventDefault();
+        let num = document.getElementById('bedNumber').value.trim();
+        if(!num) return alert("Bed number required");
+        let newBed = { id:Date.now(), number:num, ward:document.getElementById('bedWard').value, status:document.getElementById('bedStatus').value, notes:document.getElementById('bedNotes').value };
+        beds.push(newBed);
+        localStorage.setItem('hospitalBeds',JSON.stringify(beds));
+        renderBedsTable(); renderBedGrid(); updateSummary(); populateBedDropdown();
+        document.getElementById('addBedForm').reset();
+    }
+    function editBed(idx){
+        let b = beds[idx];
+        document.getElementById('bedNumber').value = b.number;
+        document.getElementById('bedWard').value = b.ward;
+        document.getElementById('bedStatus').value = b.status;
+        document.getElementById('bedNotes').value = b.notes||'';
+        beds.splice(idx,1);
+        localStorage.setItem('hospitalBeds',JSON.stringify(beds));
+        renderBedsTable(); renderBedGrid(); updateSummary(); populateBedDropdown();
+    }
+    function deleteBed(idx){
+        if(beds[idx].status === 'occupied') return alert("Cannot delete occupied bed");
+        beds.splice(idx,1);
+        localStorage.setItem('hospitalBeds',JSON.stringify(beds));
+        renderBedsTable(); renderBedGrid(); updateSummary(); populateBedDropdown();
+    }
+    function assignPatient(e){
+        e.preventDefault();
+        let pid = document.getElementById('assignPatientId').value;
+        let bid = parseInt(document.getElementById('assignBedId').value);
+        let admitDate = document.getElementById('admitDate').value;
+        let expDate = document.getElementById('expectedDischarge').value;
+        let notes = document.getElementById('assignNotes').value;
+        if(!pid || !bid || !admitDate) return alert("Fill all required");
+        let bed = beds.find(b=>b.id===bid);
+        if(!bed || bed.status!=='available') return alert("Bed not available");
+        bed.status='occupied';
+        let newAdm = { id:Date.now(), patientId:pid, bedId:bid, admitDate, expectedDischarge:expDate, diagnosis:notes, dischargeDate:null };
+        admissions.push(newAdm);
+        localStorage.setItem('hospitalBeds',JSON.stringify(beds));
+        localStorage.setItem('bedAdmissions',JSON.stringify(admissions));
+        updateSummary(); renderBedGrid(); renderBedsTable(); renderAdmissionsTable(); populateBedDropdown();
+        document.getElementById('assignForm').reset(); document.getElementById('admitDate').valueAsDate=new Date();
+    }
+    function dischargePatient(idx){
+        let adm = admissions[idx];
+        let bed = beds.find(b=>b.id===adm.bedId);
+        if(bed) bed.status='available';
+        adm.dischargeDate = new Date().toISOString().split('T')[0];
+        localStorage.setItem('hospitalBeds',JSON.stringify(beds));
+        localStorage.setItem('bedAdmissions',JSON.stringify(admissions));
+        updateSummary(); renderBedGrid(); renderBedsTable(); renderAdmissionsTable(); populateBedDropdown();
+    }
+    document.getElementById('searchBedGrid').addEventListener('input',(e)=>renderBedGrid(e.target.value));
+    document.getElementById('autoNextBedBtn').addEventListener('click',autoSelectNextBed);
+    document.getElementById('assignWardFilter').addEventListener('change',()=>populateBedDropdown(document.getElementById('assignWardFilter').value));
+    let tabs = document.querySelectorAll('.tab-btn');
+    let panes = document.querySelectorAll('.tab-pane');
+    tabs.forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            let tabId = btn.getAttribute('data-tab');
+            panes.forEach(p=>p.classList.remove('active'));
+            tabs.forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(tabId+'Tab').classList.add('active');
+            if(tabId==='grid') renderBedGrid(document.getElementById('searchBedGrid').value);
+            if(tabId==='manage') renderBedsTable();
+            if(tabId==='assign') { populatePatientDropdown(); populateBedDropdown(); renderAdmissionsTable(); }
+        });
+    });
+    function initDemo(){
+        if(beds.length===0){
+            beds = [
+                { id:1001, number:"ER-01", ward:"Emergency Ward", status:"available", notes:"" },
+                { id:1002, number:"ER-02", ward:"Emergency Ward", status:"available", notes:"" },
+                { id:1003, number:"ICU-01", ward:"ICU", status:"available", notes:"" },
+                { id:1004, number:"ICU-02", ward:"ICU", status:"available", notes:"" },
+                { id:1005, number:"GW-101", ward:"General Ward", status:"available", notes:"" }
+            ];
+            localStorage.setItem('hospitalBeds',JSON.stringify(beds));
+        }
+        updateSummary(); renderBedGrid(); renderBedsTable(); renderAdmissionsTable(); populateBedDropdown(); populatePatientDropdown();
+    }
+    window.onload = ()=>{ initDemo(); document.getElementById('addBedForm').addEventListener('submit',addBed); document.getElementById('assignForm').addEventListener('submit',assignPatient); document.getElementById('admitDate').valueAsDate=new Date(); };
+</script>
+</body>
+</html>

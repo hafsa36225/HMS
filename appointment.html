@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management | Appointments with Reminder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+        .app-container { position: relative; z-index: 1; max-width: 1300px; margin: 0 auto; }
+        .main-card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            background: linear-gradient(120deg, #0a4b62, #146b80);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h1 { color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 60px; font-size: 0.8rem; }
+
+        /* Reminder Banner */
+        .reminder-banner {
+            background: #e8f4f8;
+            border-left: 5px solid #146b80;
+            margin: 1rem 2rem 0 2rem;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+        .reminder-banner i { font-size: 1.5rem; color: #146b80; }
+        .reminder-list { font-size: 0.85rem; margin-top: 0.3rem; color: #0f5a6e; }
+        .reminder-list span { font-weight: bold; }
+
+        .form-section, .list-section { padding: 1.8rem 2rem; }
+        .form-section { border-bottom: 1px solid #cce0e6; }
+        .form-section h2, .list-toolbar h2 {
+            font-size: 1.2rem; color: #1b6b7a; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;
+        }
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 5rem;
+            flex-wrap: wrap;
+        }
+        .field { flex: 1; min-width: 180px; }
+        .full-width { flex: 1; width: 100%; }
+        .field label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #1b6b7a; display: block; margin-bottom: 5px; }
+        .field input, .field select { width: 100%; padding: 10px 12px; border: 1px solid #cce0e6; border-radius: 14px; font-size: 0.9rem; background: white; }
+        .field input:focus, .field select:focus { outline: none; border-color: #146b80; box-shadow: 0 0 0 3px rgba(20,107,128,0.15); }
+        .btn-submit {
+            background: #146b80; color: white; border: none; padding: 12px 20px;
+            border-radius: 40px; cursor: pointer; width: 100%; display: flex;
+            align-items: center; justify-content: center; gap: 8px; margin-top: 0.5rem;
+        }
+        .btn-submit:hover { background: #0f5667; transform: translateY(-2px); }
+        .list-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+        .search-box { display: flex; align-items: center; background: #f1f5f9; border-radius: 60px; padding: 0.2rem 0.2rem 0.2rem 1rem; border: 1px solid #cbdbe2; }
+        .search-box input { border: none; background: transparent; padding: 6px 10px; width: 200px; outline: none; }
+        .table-wrapper { overflow-x: auto; border-radius: 18px; border: 1px solid #cce0e6; margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 10px; background: #e0f2f5; color: #1b6b7a; }
+        td { padding: 10px; border-bottom: 1px solid #e0f0f5; color: #1f4150; }
+        tr:hover td { background: #f4fdfe; }
+        .edit-btn, .delete-btn { border: none; padding: 3px 10px; border-radius: 30px; margin: 0 2px; cursor: pointer; font-size: 0.7rem; }
+        .edit-btn { background: #e0f2e9; color: #1a6e3b; }
+        .delete-btn { background: #ffe4e2; color: #b33b2c; }
+        @media (max-width: 700px) { .form-row { flex-direction: column; margin-bottom: 2rem; } }
+    </style>
+</head>
+<body>
+<div class="bg-overlay"></div>
+<div class="app-container">
+    <div class="main-card">
+        <div class="card-header">
+            <h1><i class="fas fa-calendar-check"></i> Hospital Management System</h1>
+            <span class="badge">Appointments + Reminders</span>
+        </div>
+
+        <!-- Reminder Banner (auto shown if tomorrow's appointments exist) -->
+        <div id="reminderBanner" class="reminder-banner" style="display: none;">
+            <i class="fas fa-bell"></i>
+            <div class="alert-text">
+                <strong>🔔 Appointment Reminders (Tomorrow's appointments)</strong>
+                <div id="reminderList" class="reminder-list"></div>
+            </div>
+        </div>
+
+        <!-- Appointment Form (same 5-row layout) -->
+        <div class="form-section">
+            <h2><i class="fas fa-clock"></i> Schedule New Appointment</h2>
+            <form id="appointmentForm">
+                <div class="form-row">
+                    <div class="field"><label>Select Patient</label><select id="patientSelect" required><option value="">-- Choose Patient --</option></select></div>
+                    <div class="field"><label>Doctor Name</label><select id="doctorSelect" required><option value="">-- Select Doctor --</option><option value="DOC-101 | Dr. Asma Khalid (General Medicine)">DOC-101 | Dr. Asma Khalid - General Medicine</option><option value="DOC-102 | Dr. Bilal Ahmed (Cardiology)">DOC-102 | Dr. Bilal Ahmed - Cardiology</option><option value="DOC-103 | Dr. Farah Zafar (Pediatrics)">DOC-103 | Dr. Farah Zafar - Pediatrics</option><option value="DOC-104 | Dr. Hamid Ali (Orthopedics)">DOC-104 | Dr. Hamid Ali - Orthopedics</option><option value="DOC-105 | Dr. Sana Tariq (Neurology)">DOC-105 | Dr. Sana Tariq - Neurology</option><option value="DOC-106 | Dr. Osman Chaudhry (Dermatology)">DOC-106 | Dr. Osman Chaudhry - Dermatology</option><option value="DOC-107 | Dr. Nida Riaz (Gynecology)">DOC-107 | Dr. Nida Riaz - Gynecology</option><option value="DOC-108 | Dr. Faisal Mehmood (ENT)">DOC-108 | Dr. Faisal Mehmood - ENT</option><option value="DOC-109 | Dr. Rabia Anwar (Psychiatry)">DOC-109 | Dr. Rabia Anwar - Psychiatry</option><option value="DOC-110 | Dr. Zeeshan Haider (Urology)">DOC-110 | Dr. Zeeshan Haider - Urology</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="field"><label>Appointment Date</label><input type="date" id="appDate" required></div>
+                    <div class="field"><label>Appointment Time</label><input type="time" id="appTime" required></div>
+                </div>
+                <div class="form-row full">
+                    <div class="field full-width"><label>Reason / Symptoms</label><input type="text" id="reason" placeholder="e.g. Fever, cough, chest pain"></div>
+                </div>
+                <div class="form-row">
+                    <div class="field"><label>Status</label><select id="status"><option>Scheduled</option><option>Completed</option><option>Cancelled</option></select></div>
+                    <div class="field"></div>
+                </div>
+                <div class="form-row full">
+                    <div class="field full-width"><label>Additional Notes</label><input type="text" id="notes" placeholder="Any special instructions"></div>
+                </div>
+                <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Schedule Appointment</button>
+            </form>
+        </div>
+
+        <!-- Appointments List -->
+        <div class="list-section">
+            <div class="list-toolbar">
+                <h2><i class="fas fa-list-ul"></i> Appointments List</h2>
+                <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchAppointment" placeholder="Search by patient or doctor"></div>
+            </div>
+            <div class="table-wrapper">
+                <table id="appointmentTable">
+                    <tbody id="appointmentTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load data
+    let patients = JSON.parse(localStorage.getItem('patients')) || [];
+    let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
+
+    // Helper functions
+    function populatePatientDropdown() {
+        let select = document.getElementById('patientSelect');
+        select.innerHTML = '<option value="">-- Choose Patient --</option>';
+        patients.forEach(p => {
+            let opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = `${p.name} (${p.id}) - CNIC: ${p.cnic}`;
+            select.appendChild(opt);
+        });
+    }
+
+    function generateAppointmentId() {
+        if (appointments.length === 0) return "APT-1001";
+        let lastId = appointments[appointments.length-1].id;
+        let num = parseInt(lastId.split('-')[1]);
+        return `APT-${num+1}`;
+    }
+
+    // Render appointments table (no header)
+    function renderAppointments(filter = "") {
+        let tbody = document.getElementById('appointmentTableBody');
+        let filtered = appointments;
+        if (filter.trim()) {
+            filtered = appointments.filter(a =>
+                a.patientName.toLowerCase().includes(filter.toLowerCase()) ||
+                a.doctor.toLowerCase().includes(filter.toLowerCase()) ||
+                a.id.toLowerCase().includes(filter.toLowerCase())
+            );
+        }
+        tbody.innerHTML = "";
+        if (filtered.length === 0) {
+            let row = tbody.insertRow();
+            let cell = row.insertCell(0);
+            cell.colSpan = 7;
+            cell.textContent = "No appointments scheduled yet.";
+            cell.style.textAlign = "center";
+            cell.style.padding = "2rem";
+            return;
+        }
+        filtered.forEach((app, idx) => {
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = app.id;
+            row.insertCell(1).innerText = app.patientName;
+            let doctorDisplay = app.doctor.split('|')[1] || app.doctor;
+            row.insertCell(2).innerText = doctorDisplay;
+            row.insertCell(3).innerText = app.date;
+            row.insertCell(4).innerText = app.time;
+            row.insertCell(5).innerText = app.status;
+            let actionCell = row.insertCell(6);
+            let editBtn = document.createElement('button'); editBtn.innerText = "Edit"; editBtn.className = "edit-btn";
+            editBtn.onclick = () => editAppointment(idx);
+            let delBtn = document.createElement('button'); delBtn.innerText = "Delete"; delBtn.className = "delete-btn";
+            delBtn.onclick = () => deleteAppointment(idx);
+            actionCell.appendChild(editBtn);
+            actionCell.appendChild(delBtn);
+        });
+    }
+
+    // Add new appointment
+    function addAppointment(e) {
+        e.preventDefault();
+        let patientId = document.getElementById('patientSelect').value;
+        if (!patientId) { alert("Please select a patient"); return; }
+        let patient = patients.find(p => p.id === patientId);
+        if (!patient) return;
+        let doctorValue = document.getElementById('doctorSelect').value;
+        if (!doctorValue) { alert("Please select a doctor"); return; }
+        let date = document.getElementById('appDate').value;
+        let time = document.getElementById('appTime').value;
+        let reason = document.getElementById('reason').value;
+        let status = document.getElementById('status').value;
+        let notes = document.getElementById('notes').value;
+        if (!date || !time) { alert("Please fill date and time"); return; }
+        let newAppointment = {
+            id: generateAppointmentId(),
+            patientId: patient.id,
+            patientName: patient.name,
+            doctor: doctorValue,
+            date: date,
+            time: time,
+            reason: reason,
+            status: status,
+            notes: notes
+        };
+        appointments.push(newAppointment);
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        renderAppointments();
+        document.getElementById('appointmentForm').reset();
+        document.getElementById('status').value = "Scheduled";
+        checkAndShowReminders(); // refresh reminder banner after new appointment
+    }
+
+    function deleteAppointment(index) {
+        if (confirm("Cancel/delete this appointment?")) {
+            appointments.splice(index, 1);
+            localStorage.setItem('appointments', JSON.stringify(appointments));
+            renderAppointments(document.getElementById('searchAppointment').value);
+            checkAndShowReminders();
+        }
+    }
+
+    function editAppointment(index) {
+        let app = appointments[index];
+        let selectPatient = document.getElementById('patientSelect');
+        for (let i = 0; i < selectPatient.options.length; i++) {
+            if (selectPatient.options[i].value === app.patientId) {
+                selectPatient.selectedIndex = i; break;
+            }
+        }
+        let doctorSelect = document.getElementById('doctorSelect');
+        for (let i = 0; i < doctorSelect.options.length; i++) {
+            if (doctorSelect.options[i].value === app.doctor) {
+                doctorSelect.selectedIndex = i; break;
+            }
+        }
+        document.getElementById('appDate').value = app.date;
+        document.getElementById('appTime').value = app.time;
+        document.getElementById('reason').value = app.reason || "";
+        document.getElementById('status').value = app.status;
+        document.getElementById('notes').value = app.notes || "";
+        appointments.splice(index, 1);
+        localStorage.setItem('appointments', JSON.stringify(appointments));
+        renderAppointments(document.getElementById('searchAppointment').value);
+        checkAndShowReminders();
+    }
+
+    // =============== REMINDER SYSTEM (automatic) ===============
+    function checkAndShowReminders() {
+        let today = new Date();
+        today.setHours(0,0,0,0);
+        let tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        let tomorrowStr = tomorrow.toISOString().split('T')[0];
+        
+        let upcoming = appointments.filter(app => app.date === tomorrowStr && app.status === "Scheduled");
+        let banner = document.getElementById('reminderBanner');
+        let reminderListDiv = document.getElementById('reminderList');
+        
+        if (upcoming.length > 0) {
+            banner.style.display = 'flex';
+            let listHtml = '';
+            upcoming.forEach(app => {
+                let doctorDisplay = app.doctor.split('|')[1] || app.doctor;
+                listHtml += `<span>📌 ${app.patientName} with ${doctorDisplay} at ${app.time}</span><br>`;
+            });
+            reminderListDiv.innerHTML = listHtml;
+            // Also show browser notification if permission granted
+            if (Notification.permission === "granted") {
+                new Notification("Appointment Reminder", {
+                    body: `You have ${upcoming.length} appointment(s) tomorrow. Check details.`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+                });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(perm => {
+                    if (perm === "granted") {
+                        new Notification("Appointment Reminder", {
+                            body: `You have ${upcoming.length} appointment(s) tomorrow.`,
+                            icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png"
+                        });
+                    }
+                });
+            }
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    // Search listener
+    document.getElementById('searchAppointment').addEventListener('input', (e) => renderAppointments(e.target.value));
+
+    window.onload = () => {
+        if (patients.length === 0) alert("No patients found. Please register at least one patient first.");
+        populatePatientDropdown();
+        renderAppointments();
+        checkAndShowReminders(); // show reminders on load
+        document.getElementById('appointmentForm').addEventListener('submit', addAppointment);
+        // Optional: auto-check reminder every hour
+        setInterval(checkAndShowReminders, 3600000);
+    };
+</script>
+</body>
+</html>

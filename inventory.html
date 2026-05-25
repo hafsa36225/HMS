@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Advanced Inventory | Stock, Usage, Waste, Expiry Reminder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+        .app-container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; }
+        .main-card {
+            background: rgba(255,255,255,0.96);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            background: linear-gradient(120deg, #5c3a6e, #7e57a1);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h1 { color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 60px; font-size: 0.8rem; }
+
+        /* Expiry Alert Banner */
+        .expiry-alert {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            margin: 1rem 2rem 0 2rem;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+        .expiry-alert i { font-size: 1.5rem; color: #d9534f; }
+        .expiry-alert .alert-text { flex: 1; }
+        .expiry-list { font-size: 0.85rem; margin-top: 0.3rem; color: #856404; }
+        .expiry-list span { font-weight: bold; }
+
+        /* Summary Cards */
+        .summary-row {
+            display: flex;
+            gap: 1.5rem;
+            margin: 1.5rem 2rem 0 2rem;
+            flex-wrap: wrap;
+        }
+        .summary-card {
+            flex: 1;
+            background: white;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            border: 1px solid #ddd4e6;
+            text-align: center;
+        }
+        .summary-card h3 { font-size: 0.8rem; color: #5c3a6e; text-transform: uppercase; }
+        .summary-card .number { font-size: 1.6rem; font-weight: 700; color: #7e57a1; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 2rem;
+            border-bottom: 1px solid #e5d8ed;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 0.7rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #5c3a6e;
+            border-radius: 40px 40px 0 0;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #ede5f2;
+            color: #5c3a6e;
+            border-bottom: 3px solid #7e57a1;
+        }
+        .tab-pane { display: none; padding: 1.8rem 2rem; }
+        .tab-pane.active { display: block; }
+
+        .form-section, .list-section { margin-bottom: 1.5rem; }
+        .form-section h2, .list-toolbar h2 {
+            font-size: 1.2rem; color: #5c3a6e; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;
+        }
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .field { flex: 1; min-width: 180px; }
+        .full-width { flex: 1; width: 100%; }
+        .field label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #7e57a1; display: block; margin-bottom: 5px; }
+        .field input, .field select { width: 100%; padding: 8px 12px; border: 1px solid #ddd4e6; border-radius: 14px; }
+        .btn-submit {
+            background: #7e57a1; color: white; border: none; padding: 10px 20px;
+            border-radius: 40px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-submit:hover { background: #5c3a6e; }
+        .table-wrapper { overflow-x: auto; border-radius: 18px; border: 1px solid #e5d8ed; margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 10px; background: #ede5f2; color: #5c3a6e; }
+        td { padding: 10px; border-bottom: 1px solid #ede5f2; color: #2c1e36; }
+        .low-stock { background: #fff0f0 !important; color: #c0392b; }
+        .expired-row { background: #ffe0e0 !important; text-decoration: line-through; }
+        .expiring-soon { background: #fff8e0 !important; font-weight: bold; }
+        .edit-btn, .delete-btn { border: none; padding: 3px 10px; border-radius: 30px; margin: 0 2px; cursor: pointer; font-size: 0.7rem; }
+        .edit-btn { background: #ede5f2; color: #5c3a6e; }
+        .delete-btn { background: #ffe4e2; color: #b33b2c; }
+        .search-box {
+            display: flex; align-items: center; background: #f1f5f9; border-radius: 60px;
+            padding: 0.2rem 0.2rem 0.2rem 1rem; border: 1px solid #cbdbe2;
+        }
+        .search-box input { border: none; background: transparent; padding: 6px 10px; width: 200px; outline: none; }
+        .list-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+        @media (max-width: 700px) { .form-row { flex-direction: column; } .tabs { padding: 0 1rem; } }
+    </style>
+</head>
+<body>
+<div class="bg-overlay"></div>
+<div class="app-container">
+    <div class="main-card">
+        <div class="card-header">
+            <h1><i class="fas fa-cubes"></i> Advanced Inventory Management</h1>
+            <span class="badge">Stock | Usage | Waste | Expiry Reminder</span>
+        </div>
+
+        <!-- Expiry Alert Banner (Dynamic) -->
+        <div id="expiryAlertBanner" class="expiry-alert" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div class="alert-text">
+                <strong>⚠️ Expiry Reminder:</strong> <span id="expiryAlertCount">0</span> medicine(s) will expire within 30 days.
+                <div id="expiryAlertList" class="expiry-list"></div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-row" id="summaryArea">
+            <div class="summary-card"><h3>Total Items</h3><div class="number" id="totalItems">0</div></div>
+            <div class="summary-card"><h3>Total Quantity (Units)</h3><div class="number" id="totalQty">0</div></div>
+            <div class="summary-card"><h3>Low Stock Items</h3><div class="number" id="lowStockCount">0</div></div>
+            <div class="summary-card"><h3>Expired Items</h3><div class="number" id="expiredCount">0</div></div>
+            <div class="summary-card"><h3>Expiring in 30 days</h3><div class="number" id="expiringSoonCount">0</div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="stock">📦 Stock Items</button>
+            <button class="tab-btn" data-tab="usage">💊 Usage / Consumption</button>
+            <button class="tab-btn" data-tab="waste">🗑️ Waste & Expiry</button>
+            <button class="tab-btn" data-tab="ledger">📜 Transaction Ledger</button>
+        </div>
+
+        <!-- Tab 1: Stock Items -->
+        <div id="stockTab" class="tab-pane active">
+            <div class="form-section">
+                <h2><i class="fas fa-plus-circle"></i> Add New Stock Item</h2>
+                <form id="addItemForm">
+                    <div class="form-row">
+                        <div class="field"><label>Item Name</label><input type="text" id="itemName" required></div>
+                        <div class="field"><label>Category</label><select id="category"><option>Medicine</option><option>Surgical</option><option>Equipment</option><option>Other</option></select></div>
+                        <div class="field"><label>Unit</label><select id="unit"><option>Tablets</option><option>Bottles</option><option>Boxes</option><option>Pieces</option></select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field"><label>Initial Quantity</label><input type="number" id="initQty" required></div>
+                        <div class="field"><label>Reorder Level</label><input type="number" id="reorderLevel" required></div>
+                        <div class="field"><label>Expiry Date</label><input type="date" id="expiryDate"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field"><label>Supplier</label><input type="text" id="supplier"></div>
+                        <div class="field"><label>Cost per Unit</label><input type="number" step="0.01" id="costUnit"></div>
+                        <div class="field"><label>Location</label><input type="text" id="location"></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Add Item</button>
+                </form>
+            </div>
+            <div class="list-section">
+                <div class="list-toolbar">
+                    <h2><i class="fas fa-list"></i> Current Stock</h2>
+                    <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchStock" placeholder="Search item..."></div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="stockTable">
+                        <thead><tr><th>ID</th><th>Item</th><th>Category</th><th>Qty</th><th>Unit</th><th>Expiry</th><th>Reorder</th><th>Actions</th></tr></thead>
+                        <tbody id="stockTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Usage -->
+        <div id="usageTab" class="tab-pane">
+            <div class="form-section">
+                <h2><i class="fas fa-syringe"></i> Record Usage / Consumption</h2>
+                <form id="usageForm">
+                    <div class="form-row">
+                        <div class="field"><label>Select Item</label><select id="usageItemId" required></select></div>
+                        <div class="field"><label>Quantity Used</label><input type="number" id="usageQty" required></div>
+                        <div class="field"><label>Date</label><input type="date" id="usageDate" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field"><label>Department / Ward</label><select id="usageDept"><option>OPD</option><option>Emergency</option><option>Ward A</option><option>Ward B</option><option>ICU</option><option>Operation Theater</option></select></div>
+                        <div class="field"><label>Prescribed By</label><input type="text" id="usageDoctor" placeholder="Doctor name"></div>
+                    </div>
+                    <div class="form-row full"><div class="field full-width"><label>Remarks</label><input type="text" id="usageRemarks" placeholder="e.g., Patient ID or reason"></div></div>
+                    <button type="submit" class="btn-submit"><i class="fas fa-check-circle"></i> Record Usage</button>
+                </form>
+            </div>
+            <div class="list-section">
+                <h2>Recent Usage History</h2>
+                <div class="table-wrapper">
+                    <table id="usageTable">
+                        <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Dept/Ward</th><th>Doctor</th><th>Remarks</th></tr></thead>
+                        <tbody id="usageTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Waste & Expiry -->
+        <div id="wasteTab" class="tab-pane">
+            <div class="form-section">
+                <h2><i class="fas fa-trash-alt"></i> Record Waste / Expiry</h2>
+                <form id="wasteForm">
+                    <div class="form-row">
+                        <div class="field"><label>Select Item</label><select id="wasteItemId" required></select></div>
+                        <div class="field"><label>Quantity</label><input type="number" id="wasteQty" required></div>
+                        <div class="field"><label>Date</label><input type="date" id="wasteDate" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field"><label>Type</label><select id="wasteType"><option>Expired</option><option>Damaged</option><option>Lost</option></select></div>
+                        <div class="field"><label>Reason / Remarks</label><input type="text" id="wasteRemarks"></div>
+                    </div>
+                    <button type="submit" class="btn-submit"><i class="fas fa-exclamation-triangle"></i> Record Waste</button>
+                </form>
+            </div>
+            <div class="list-section">
+                <h2>Waste & Expiry Log</h2>
+                <div class="table-wrapper">
+                    <table id="wasteTable">
+                        <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Type</th><th>Remarks</th></tr></thead>
+                        <tbody id="wasteTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Transaction Ledger -->
+        <div id="ledgerTab" class="tab-pane">
+            <div class="list-toolbar">
+                <h2><i class="fas fa-history"></i> Complete Transaction Log</h2>
+                <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchLedger" placeholder="Search item or type"></div>
+            </div>
+            <div class="table-wrapper">
+                <table id="ledgerTable">
+                    <thead><tr><th>Date</th><th>Item</th><th>Transaction Type</th><th>Quantity</th><th>Balance After</th><th>Reference</th></tr></thead>
+                    <tbody id="ledgerTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Data structures
+    let items = JSON.parse(localStorage.getItem('advInventoryItems')) || [];
+    let transactions = JSON.parse(localStorage.getItem('advInventoryTransactions')) || [];
+
+    // Helper: Check if item is expired
+    function isExpired(expiryDate) {
+        if (!expiryDate) return false;
+        let today = new Date().toISOString().split('T')[0];
+        return expiryDate < today;
+    }
+
+    // Helper: Check if expiring within 30 days
+    function isExpiringSoon(expiryDate) {
+        if (!expiryDate) return false;
+        let today = new Date();
+        let exp = new Date(expiryDate);
+        let diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+        return diffDays > 0 && diffDays <= 30;
+    }
+
+    // Generate item ID
+    function generateItemId() {
+        if (items.length === 0) return "MED-1001";
+        let lastId = items[items.length-1].id;
+        let num = parseInt(lastId.split('-')[1]);
+        return `MED-${num+1}`;
+    }
+
+    // Update summary and expiry alert
+    function updateSummary() {
+        let totalItems = items.length;
+        let totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+        let lowStock = items.filter(i => i.quantity <= i.reorderLevel).length;
+        let today = new Date().toISOString().split('T')[0];
+        let expired = items.filter(i => i.expiryDate && i.expiryDate < today).length;
+        let expiringSoon = items.filter(i => isExpiringSoon(i.expiryDate)).length;
+        document.getElementById('totalItems').innerText = totalItems;
+        document.getElementById('totalQty').innerText = totalQty;
+        document.getElementById('lowStockCount').innerText = lowStock;
+        document.getElementById('expiredCount').innerText = expired;
+        document.getElementById('expiringSoonCount').innerText = expiringSoon;
+
+        // Update expiry alert banner
+        let expiringItems = items.filter(i => isExpiringSoon(i.expiryDate));
+        let banner = document.getElementById('expiryAlertBanner');
+        if (expiringItems.length > 0) {
+            banner.style.display = 'flex';
+            document.getElementById('expiryAlertCount').innerText = expiringItems.length;
+            let listHtml = '';
+            expiringItems.forEach(i => {
+                let daysLeft = Math.ceil((new Date(i.expiryDate) - new Date()) / (1000*60*60*24));
+                listHtml += `<span>${i.name} (${i.expiryDate}) - ${daysLeft} days left</span><br>`;
+            });
+            document.getElementById('expiryAlertList').innerHTML = listHtml;
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    // Render stock table with expiry highlighting
+    function renderStock(filter = "") {
+        let tbody = document.getElementById('stockTableBody');
+        let filtered = items;
+        if (filter) filtered = items.filter(i => i.name.toLowerCase().includes(filter.toLowerCase()));
+        tbody.innerHTML = "";
+        filtered.forEach((item, idx) => {
+            let row = tbody.insertRow();
+            if (item.quantity <= item.reorderLevel) row.classList.add('low-stock');
+            if (isExpired(item.expiryDate)) row.classList.add('expired-row');
+            else if (isExpiringSoon(item.expiryDate)) row.classList.add('expiring-soon');
+            row.insertCell(0).innerText = item.id;
+            row.insertCell(1).innerText = item.name;
+            row.insertCell(2).innerText = item.category;
+            row.insertCell(3).innerText = `${item.quantity} ${item.unit}`;
+            row.insertCell(4).innerText = item.expiryDate || "-";
+            row.insertCell(5).innerText = item.reorderLevel;
+            let actionCell = row.insertCell(6);
+            let editBtn = document.createElement('button'); editBtn.innerText = "Edit"; editBtn.className = "edit-btn";
+            editBtn.onclick = () => editItem(idx);
+            let delBtn = document.createElement('button'); delBtn.innerText = "Delete"; delBtn.className = "delete-btn";
+            delBtn.onclick = () => deleteItem(idx);
+            actionCell.appendChild(editBtn); actionCell.appendChild(delBtn);
+        });
+    }
+
+    function addItem(e) {
+        e.preventDefault();
+        let name = document.getElementById('itemName').value.trim();
+        if (!name) return alert("Item name required");
+        let newItem = {
+            id: generateItemId(),
+            name: name,
+            category: document.getElementById('category').value,
+            unit: document.getElementById('unit').value,
+            quantity: parseInt(document.getElementById('initQty').value),
+            reorderLevel: parseInt(document.getElementById('reorderLevel').value),
+            expiryDate: document.getElementById('expiryDate').value,
+            supplier: document.getElementById('supplier').value,
+            costPerUnit: parseFloat(document.getElementById('costUnit').value) || 0,
+            location: document.getElementById('location').value
+        };
+        items.push(newItem);
+        transactions.push({
+            date: new Date().toISOString().split('T')[0],
+            itemId: newItem.id,
+            itemName: newItem.name,
+            type: "Stock In (Purchase)",
+            quantity: newItem.quantity,
+            balanceAfter: newItem.quantity,
+            reference: "Initial stock"
+        });
+        saveAndRefresh();
+        document.getElementById('addItemForm').reset();
+    }
+
+    function editItem(index) {
+        let item = items[index];
+        document.getElementById('itemName').value = item.name;
+        document.getElementById('category').value = item.category;
+        document.getElementById('unit').value = item.unit;
+        document.getElementById('initQty').value = item.quantity;
+        document.getElementById('reorderLevel').value = item.reorderLevel;
+        document.getElementById('expiryDate').value = item.expiryDate;
+        document.getElementById('supplier').value = item.supplier || "";
+        document.getElementById('costUnit').value = item.costPerUnit;
+        document.getElementById('location').value = item.location || "";
+        items.splice(index,1);
+        saveAndRefresh();
+    }
+
+    function deleteItem(index) {
+        if (confirm("Delete item permanently?")) {
+            items.splice(index,1);
+            saveAndRefresh();
+        }
+    }
+
+    // Record usage with expiry check
+    function recordUsage(e) {
+        e.preventDefault();
+        let itemId = document.getElementById('usageItemId').value;
+        let qty = parseInt(document.getElementById('usageQty').value);
+        let date = document.getElementById('usageDate').value;
+        let dept = document.getElementById('usageDept').value;
+        let doctor = document.getElementById('usageDoctor').value;
+        let remarks = document.getElementById('usageRemarks').value;
+        let item = items.find(i => i.id === itemId);
+        if (!item) { alert("Item not found"); return; }
+        if (isExpired(item.expiryDate)) {
+            alert(`❌ Cannot use ${item.name}. It has expired on ${item.expiryDate}. Please mark as waste.`);
+            return;
+        }
+        if (qty <= 0 || qty > item.quantity) { alert(`Invalid quantity. Available: ${item.quantity}`); return; }
+        item.quantity -= qty;
+        items = items.map(i => i.id === itemId ? item : i);
+        transactions.push({
+            date: date,
+            itemId: item.id,
+            itemName: item.name,
+            type: "Usage (Consumption)",
+            quantity: -qty,
+            balanceAfter: item.quantity,
+            reference: `${dept} | Dr. ${doctor} | ${remarks}`
+        });
+        saveAndRefresh();
+        document.getElementById('usageForm').reset();
+        document.getElementById('usageDate').valueAsDate = new Date();
+        populateItemDropdowns();
+    }
+
+    // Record waste (expired/damaged)
+    function recordWaste(e) {
+        e.preventDefault();
+        let itemId = document.getElementById('wasteItemId').value;
+        let qty = parseInt(document.getElementById('wasteQty').value);
+        let date = document.getElementById('wasteDate').value;
+        let type = document.getElementById('wasteType').value;
+        let remarks = document.getElementById('wasteRemarks').value;
+        let item = items.find(i => i.id === itemId);
+        if (!item) { alert("Item not found"); return; }
+        if (qty <= 0 || qty > item.quantity) { alert(`Invalid quantity. Available: ${item.quantity}`); return; }
+        item.quantity -= qty;
+        items = items.map(i => i.id === itemId ? item : i);
+        transactions.push({
+            date: date,
+            itemId: item.id,
+            itemName: item.name,
+            type: `Waste (${type})`,
+            quantity: -qty,
+            balanceAfter: item.quantity,
+            reference: remarks
+        });
+        saveAndRefresh();
+        document.getElementById('wasteForm').reset();
+        document.getElementById('wasteDate').valueAsDate = new Date();
+        populateItemDropdowns();
+    }
+
+    function saveAndRefresh() {
+        localStorage.setItem('advInventoryItems', JSON.stringify(items));
+        localStorage.setItem('advInventoryTransactions', JSON.stringify(transactions));
+        renderStock(document.getElementById('searchStock').value);
+        updateSummary();
+        renderUsageHistory();
+        renderWasteLog();
+        renderLedger();
+        populateItemDropdowns();
+    }
+
+    function renderUsageHistory() {
+        let usageTrans = transactions.filter(t => t.type.includes("Usage")).slice(-30).reverse();
+        let tbody = document.getElementById('usageTableBody');
+        tbody.innerHTML = "";
+        usageTrans.forEach(t => {
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = t.date;
+            row.insertCell(1).innerText = t.itemName;
+            row.insertCell(2).innerText = -t.quantity;
+            row.insertCell(3).innerText = t.reference.split('|')[0] || "";
+            row.insertCell(4).innerText = (t.reference.match(/Dr\.\s*(.*?)\|/) || [])[1] || "";
+            row.insertCell(5).innerText = t.reference.split('|')[2] || "";
+        });
+    }
+
+    function renderWasteLog() {
+        let wasteTrans = transactions.filter(t => t.type.includes("Waste")).slice(-30).reverse();
+        let tbody = document.getElementById('wasteTableBody');
+        tbody.innerHTML = "";
+        wasteTrans.forEach(t => {
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = t.date;
+            row.insertCell(1).innerText = t.itemName;
+            row.insertCell(2).innerText = -t.quantity;
+            row.insertCell(3).innerText = t.type.split('(')[1]?.replace(')','') || "Expired";
+            row.insertCell(4).innerText = t.reference;
+        });
+    }
+
+    function renderLedger(filter = "") {
+        let tbody = document.getElementById('ledgerTableBody');
+        let filtered = transactions.slice().reverse();
+        if (filter) filtered = filtered.filter(t => t.itemName.toLowerCase().includes(filter.toLowerCase()) || t.type.toLowerCase().includes(filter.toLowerCase()));
+        tbody.innerHTML = "";
+        filtered.forEach(t => {
+            let row = tbody.insertRow();
+            row.insertCell(0).innerText = t.date;
+            row.insertCell(1).innerText = t.itemName;
+            row.insertCell(2).innerText = t.type;
+            row.insertCell(3).innerText = t.quantity;
+            row.insertCell(4).innerText = t.balanceAfter;
+            row.insertCell(5).innerText = t.reference;
+        });
+    }
+
+    function populateItemDropdowns() {
+        let usageSelect = document.getElementById('usageItemId');
+        let wasteSelect = document.getElementById('wasteItemId');
+        usageSelect.innerHTML = ""; wasteSelect.innerHTML = "";
+        items.forEach(item => {
+            let opt1 = document.createElement('option');
+            opt1.value = item.id;
+            opt1.textContent = `${item.name} (${item.quantity} ${item.unit} left) ${item.expiryDate ? `Exp: ${item.expiryDate}` : ''}`;
+            if (isExpired(item.expiryDate)) opt1.style.color = "#c0392b";
+            let opt2 = opt1.cloneNode(true);
+            usageSelect.appendChild(opt1);
+            wasteSelect.appendChild(opt2);
+        });
+    }
+
+    // Tab switching
+    let tabs = document.querySelectorAll('.tab-btn');
+    let panes = document.querySelectorAll('.tab-pane');
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            let tabId = btn.getAttribute('data-tab');
+            panes.forEach(p => p.classList.remove('active'));
+            tabs.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(tabId + 'Tab').classList.add('active');
+            if (tabId === 'usage') renderUsageHistory();
+            if (tabId === 'waste') renderWasteLog();
+            if (tabId === 'ledger') renderLedger(document.getElementById('searchLedger').value);
+        });
+    });
+
+    // Search listeners
+    document.getElementById('searchStock').addEventListener('input', (e) => renderStock(e.target.value));
+    document.getElementById('searchLedger').addEventListener('input', (e) => renderLedger(e.target.value));
+
+    // Demo data if empty
+    function initDemoData() {
+        if (items.length === 0) {
+            items = [
+                { id: "MED-1001", name: "Paracetamol 500mg", category: "Medicine", unit: "Tablets", quantity: 15000, reorderLevel: 2000, expiryDate: "2025-12-31", supplier: "ABC Pharma", costPerUnit: 2, location: "Shelf A1" },
+                { id: "MED-1002", name: "Azithromycin 250mg", category: "Medicine", unit: "Tablets", quantity: 8000, reorderLevel: 1000, expiryDate: "2025-10-15", supplier: "XYZ Labs", costPerUnit: 15, location: "Shelf B2" },
+                { id: "MED-1003", name: "ORS Sachet", category: "Medicine", unit: "Boxes", quantity: 500, reorderLevel: 100, expiryDate: "2025-11-20", supplier: "Health Corp", costPerUnit: 80, location: "Shelf C3" },
+                { id: "MED-1004", name: "Amoxicillin 250mg", category: "Medicine", unit: "Capsules", quantity: 12000, reorderLevel: 1500, expiryDate: "2026-01-10", supplier: "MediSupply", costPerUnit: 8, location: "Shelf D4" }
+            ];
+            transactions = items.map(i => ({ date: "2025-01-01", itemId: i.id, itemName: i.name, type: "Stock In (Purchase)", quantity: i.quantity, balanceAfter: i.quantity, reference: "Opening stock" }));
+            localStorage.setItem('advInventoryItems', JSON.stringify(items));
+            localStorage.setItem('advInventoryTransactions', JSON.stringify(transactions));
+        }
+    }
+
+    window.onload = () => {
+        initDemoData();
+        renderStock();
+        updateSummary();
+        populateItemDropdowns();
+        renderUsageHistory();
+        renderWasteLog();
+        renderLedger();
+        document.getElementById('addItemForm').addEventListener('submit', addItem);
+        document.getElementById('usageForm').addEventListener('submit', recordUsage);
+        document.getElementById('wasteForm').addEventListener('submit', recordWaste);
+        document.getElementById('usageDate').valueAsDate = new Date();
+        document.getElementById('wasteDate').valueAsDate = new Date();
+    };
+</script>
+</body>
+</html>

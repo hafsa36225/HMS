@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management | Patient Registration</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            background: linear-gradient(120deg, #0f4c5c, #1b6b7a);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-header h1 {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 1rem;
+            border-radius: 60px;
+            font-size: 0.8rem;
+            color: #fff;
+        }
+
+        .form-section, .list-section {
+            padding: 1.8rem 2rem;
+        }
+
+        .form-section {
+            border-bottom: 1px solid #cce0e6;
+        }
+
+        .form-section h2, .list-toolbar h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1b6b7a;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 5rem;
+            flex-wrap: wrap;
+        }
+
+        .form-row .field {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .form-row.full .field.full-width {
+            flex: 1;
+            width: 100%;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #1b6b7a;
+            margin-bottom: 5px;
+        }
+
+        .field label .required {
+            color: #dc3545;
+            margin-left: 3px;
+        }
+
+        .field input, .field select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cce0e6;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            background: white;
+            transition: 0.2s;
+        }
+
+        .field input:focus, .field select:focus {
+            outline: none;
+            border-color: #1b6b7a;
+            box-shadow: 0 0 0 3px rgba(27,107,122,0.15);
+        }
+
+        .field input[readonly] {
+            background: #eef4f8;
+            color: #0f5a6e;
+            font-weight: 500;
+        }
+
+        .field .error-msg {
+            color: #dc3545;
+            font-size: 0.7rem;
+            margin-top: 3px;
+            display: none;
+        }
+
+        .btn-submit {
+            background: #1b6b7a;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .btn-submit:hover {
+            background: #0f5667;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        .list-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .search-type {
+            background: #f1f5f9;
+            border-radius: 40px;
+            padding: 0.2rem 0.5rem;
+            border: 1px solid #cbdbe2;
+        }
+
+        .search-type select {
+            border: none;
+            background: transparent;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f1f5f9;
+            border-radius: 60px;
+            padding: 0.2rem 0.2rem 0.2rem 1rem;
+            border: 1px solid #cbdbe2;
+        }
+
+        .search-box i {
+            color: #5f7d95;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            padding: 8px 12px;
+            width: 220px;
+            outline: none;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 18px;
+            border: 1px solid #cce0e6;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0f0f5;
+            color: #1f4150;
+        }
+
+        tr:hover td {
+            background: #f4fdfe;
+        }
+
+        td:first-child {
+            font-weight: 500;
+            color: #1b6b7a;
+        }
+
+        .edit-btn, .delete-btn {
+            border: none;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin: 0 3px;
+        }
+
+        .edit-btn {
+            background: #e0f2e9;
+            color: #1a6e3b;
+            border: 1px solid #b8dbc9;
+        }
+
+        .delete-btn {
+            background: #ffe4e2;
+            color: #b33b2c;
+            border: 1px solid #fccbc7;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 0.8rem; }
+            .form-section, .list-section { padding: 1rem; }
+            .form-row { flex-direction: column; gap: 0.8rem; margin-bottom: 2rem; }
+            .search-box input { width: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-overlay"></div>
+    <div class="app-container">
+        <div class="main-card">
+            <div class="card-header">
+                <h1><i class="fas fa-user-friends"></i> Hospital Management System</h1>
+                <span class="badge">Patient Registration</span>
+            </div>
+
+            <div class="form-section">
+                <h2><i class="fas fa-user-plus"></i> Register New Patient</h2>
+                <form id="patientForm">
+                    <!-- Row 1: Full Name + Patient ID (auto) -->
+                    <div class="form-row">
+                        <div class="field">
+                            <label>Full Name <span class="required">*</span></label>
+                            <input type="text" id="name" placeholder="e.g. Sarah Khan" required>
+                            <div class="error-msg" id="nameError">Please enter full name</div>
+                        </div>
+                        <div class="field">
+                            <label>Patient ID (Auto)</label>
+                            <input type="text" id="patientId" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Age + Gender -->
+                    <div class="form-row">
+                        <div class="field">
+                            <label>Age <span class="required">*</span></label>
+                            <input type="number" id="age" placeholder="e.g. 34" required>
+                            <div class="error-msg" id="ageError">Please enter valid age (1-120)</div>
+                        </div>
+                        <div class="field">
+                            <label>Gender <span class="required">*</span></label>
+                            <select id="gender" required>
+                                <option value="">-- Select --</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </select>
+                            <div class="error-msg" id="genderError">Please select gender</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Mobile + CNIC -->
+                    <div class="form-row">
+                        <div class="field">
+                            <label>Mobile Number <span class="required">*</span></label>
+                            <input type="tel" id="mobile" placeholder="03xxxxxxxxx" maxlength="11" required>
+                            <div class="error-msg" id="mobileError">Mobile must be exactly 11 digits (0-9 only)</div>
+                        </div>
+                        <div class="field">
+                            <label>CNIC Number <span class="required">*</span></label>
+                            <input type="text" id="cnic" placeholder="12345-6789012-3" required>
+                            <div class="error-msg" id="cnicError">Please enter CNIC (format: 12345-6789012-3)</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Blood Group + Allergies -->
+                    <div class="form-row">
+                        <div class="field">
+                            <label>Blood Group</label>
+                            <select id="bloodGroup">
+                                <option>A+</option><option>A-</option><option>B+</option>
+                                <option>B-</option><option>O+</option><option>O-</option>
+                                <option>AB+</option><option>AB-</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Allergies (if any)</label>
+                            <input type="text" id="allergy" placeholder="e.g. Penicillin, Nuts">
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Address (full width) -->
+                    <div class="form-row full">
+                        <div class="field full-width">
+                            <label>Address</label>
+                            <input type="text" id="address" placeholder="House, Street, City">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit"><i class="fas fa-save"></i> Register Patient</button>
+                </form>
+            </div>
+
+            <div class="list-section">
+                <div class="list-toolbar">
+                    <h2><i class="fas fa-list-ul"></i> Registered Patients</h2>
+                    <div class="search-wrapper">
+                        <div class="search-type">
+                            <select id="searchType">
+                                <option value="name">Patient Name</option>
+                                <option value="id">Patient ID</option>
+                                <option value="cnic">CNIC</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchPatient" placeholder="Type to search...">
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="patientTable">
+                        <tbody id="patientTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let patients = JSON.parse(localStorage.getItem('patients')) || [];
+
+        function generateId() {
+            if (patients.length === 0) return "HMS-1001";
+            let lastId = patients[patients.length - 1].id;
+            let num = parseInt(lastId.split('-')[1]);
+            return `HMS-${num + 1}`;
+        }
+
+        // Validation Functions
+        function validateName(name) {
+            return name.trim().length > 0;
+        }
+
+        function validateAge(age) {
+            let a = parseInt(age);
+            return !isNaN(a) && a >= 1 && a <= 120;
+        }
+
+        function validateGender(gender) {
+            return gender !== "" && gender !== "-- Select --";
+        }
+
+        function validateMobile(mobile) {
+            return /^[0-9]{11}$/.test(mobile);
+        }
+
+        function validateCNIC(cnic) {
+            return /^[0-9]{5}-[0-9]{7}-[0-9]{1}$/.test(cnic);
+        }
+
+        function renderPatients(filter = "", searchField = "name") {
+            const tbody = document.getElementById('patientTableBody');
+            let filtered = patients;
+            if (filter.trim()) {
+                filtered = patients.filter(p => {
+                    if (searchField === "name") {
+                        return p.name.toLowerCase().includes(filter.toLowerCase());
+                    } else if (searchField === "id") {
+                        return p.id.toLowerCase().includes(filter.toLowerCase());
+                    } else if (searchField === "cnic") {
+                        return p.cnic.includes(filter);
+                    }
+                    return false;
+                });
+            }
+            tbody.innerHTML = "";
+            if (filtered.length === 0) {
+                const row = tbody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 8;
+                cell.textContent = "No patients registered yet.";
+                cell.style.textAlign = "center";
+                cell.style.padding = "2rem";
+                cell.style.color = "#1b6b7a";
+                return;
+            }
+            filtered.forEach((p, idx) => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerText = p.id;
+                row.insertCell(1).innerText = p.name;
+                row.insertCell(2).innerText = p.age;
+                row.insertCell(3).innerText = p.gender;
+                row.insertCell(4).innerText = p.mobile;
+                row.insertCell(5).innerText = p.cnic;
+                row.insertCell(6).innerText = p.bloodGroup;
+                const actionCell = row.insertCell(7);
+                const editBtn = document.createElement('button');
+                editBtn.innerText = "Edit";
+                editBtn.className = "edit-btn";
+                editBtn.onclick = () => editPatient(idx);
+                const delBtn = document.createElement('button');
+                delBtn.innerText = "Delete";
+                delBtn.className = "delete-btn";
+                delBtn.onclick = () => deletePatient(idx);
+                actionCell.appendChild(editBtn);
+                actionCell.appendChild(delBtn);
+            });
+        }
+
+        function addPatient(e) {
+            e.preventDefault();
+            
+            // Get values
+            const name = document.getElementById('name').value.trim();
+            const age = document.getElementById('age').value;
+            const gender = document.getElementById('gender').value;
+            const mobile = document.getElementById('mobile').value.trim();
+            const cnic = document.getElementById('cnic').value.trim();
+            const address = document.getElementById('address').value;
+            const bloodGroup = document.getElementById('bloodGroup').value;
+            const allergy = document.getElementById('allergy').value;
+            
+            // Clear previous errors
+            document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
+            
+            let isValid = true;
+            
+            // Validate Name
+            if (!validateName(name)) {
+                document.getElementById('nameError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate Age
+            if (!validateAge(age)) {
+                document.getElementById('ageError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate Gender
+            if (!validateGender(gender)) {
+                document.getElementById('genderError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate Mobile
+            if (!validateMobile(mobile)) {
+                document.getElementById('mobileError').style.display = 'block';
+                isValid = false;
+            }
+            
+            // Validate CNIC
+            if (!validateCNIC(cnic)) {
+                document.getElementById('cnicError').style.display = 'block';
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                alert("Please fill all required fields correctly.");
+                return;
+            }
+            
+            const newPatient = {
+                id: generateId(),
+                name, age, gender, mobile, cnic, address, bloodGroup, allergy
+            };
+            patients.push(newPatient);
+            localStorage.setItem('patients', JSON.stringify(patients));
+            renderPatients();
+            document.getElementById('patientForm').reset();
+            document.getElementById('gender').value = "";
+            document.getElementById('patientId').value = generateId();
+            alert("Patient registered successfully!");
+        }
+
+        function deletePatient(index) {
+            if (confirm("Delete this patient permanently?")) {
+                patients.splice(index, 1);
+                localStorage.setItem('patients', JSON.stringify(patients));
+                const searchValue = document.getElementById('searchPatient').value;
+                const searchType = document.getElementById('searchType').value;
+                renderPatients(searchValue, searchType);
+            }
+        }
+
+        function editPatient(index) {
+            const p = patients[index];
+            document.getElementById('name').value = p.name;
+            document.getElementById('age').value = p.age;
+            document.getElementById('gender').value = p.gender;
+            document.getElementById('mobile').value = p.mobile;
+            document.getElementById('cnic').value = p.cnic;
+            document.getElementById('address').value = p.address;
+            document.getElementById('bloodGroup').value = p.bloodGroup;
+            document.getElementById('allergy').value = p.allergy;
+            patients.splice(index, 1);
+            localStorage.setItem('patients', JSON.stringify(patients));
+            const searchValue = document.getElementById('searchPatient').value;
+            const searchType = document.getElementById('searchType').value;
+            renderPatients(searchValue, searchType);
+            document.getElementById('patientId').value = generateId();
+        }
+
+        // Live mobile validation (only digits)
+        const mobileInput = document.getElementById('mobile');
+        mobileInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11);
+            if (this.value.length === 11) {
+                document.getElementById('mobileError').style.display = 'none';
+            }
+        });
+
+        // Live CNIC format hint
+        const cnicInput = document.getElementById('cnic');
+        cnicInput.addEventListener('input', function() {
+            let val = this.value.replace(/[^0-9]/g, '');
+            if (val.length >= 13) val = val.slice(0, 13);
+            let formatted = '';
+            if (val.length > 0) formatted = val.slice(0, 5);
+            if (val.length >= 6) formatted += '-' + val.slice(5, 12);
+            if (val.length >= 13) formatted += '-' + val.slice(12, 13);
+            this.value = formatted;
+        });
+
+        const searchInput = document.getElementById('searchPatient');
+        const searchTypeSelect = document.getElementById('searchType');
+        function handleSearch() {
+            renderPatients(searchInput.value, searchTypeSelect.value);
+        }
+        searchInput.addEventListener('input', handleSearch);
+        searchTypeSelect.addEventListener('change', handleSearch);
+
+        window.onload = () => {
+            document.getElementById('patientId').value = generateId();
+            renderPatients();
+            document.getElementById('patientForm').addEventListener('submit', addPatient);
+        };
+    </script>
+</body>
+</html>

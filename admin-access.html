@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System | Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 2rem;
+            position: relative;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 0;
+        }
+        .dashboard {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.85);
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+        .role-selector {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(8px);
+            border-radius: 3rem;
+            padding: 0.8rem 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .role-selector label {
+            color: white;
+            font-weight: 600;
+        }
+        .role-selector select {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            border: none;
+            background: white;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .role-badge {
+            background: #ffc107;
+            color: #1e3c72;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #1e4a5f;
+            display: block;
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(2px);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -10px rgba(0,0,0,0.2);
+            background: white;
+        }
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+        }
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+        .card-desc {
+            font-size: 0.8rem;
+            color: #5f7d95;
+            line-height: 1.3;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+        }
+        @media (max-width: 700px) {
+            body { padding: 1rem; }
+            .grid { gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="overlay"></div>
+<div class="dashboard">
+    <h1>
+        <span style="font-size: 2rem;">🏥</span> Hospital Management System
+    </h1>
+    <div class="subtitle">Role‑Based Access Dashboard</div>
+
+    <div class="role-selector">
+        <label><i class="fas fa-user-tag"></i> Login as:</label>
+        <select id="roleSelect">
+            <option value="admin">👑 Admin (Full Access)</option>
+            <option value="doctor">🩺 Doctor</option>
+            <option value="finance">💰 Finance / Accountant</option>
+            <option value="patient">🧑‍🦱 Patient / Receptionist</option>
+            <option value="emergency">🚑 Emergency Staff</option>
+        </select>
+        <span class="role-badge" id="roleBadge">Doctor</span>
+    </div>
+
+    <div class="grid" id="modulesGrid"></div>
+    <div class="footer">
+        <i class="fas fa-shield-alt"></i> Strong admin password enforced. QR Scanner only for Patient role.
+    </div>
+</div>
+
+<script>
+    // Modules definition with updated roles:
+    // QR Scanner (Medical ID) is now ONLY for patient role.
+    const modules = [
+        { name: "Patient Registration", icon: "📋", desc: "Register new patients, auto ID, search, edit, delete.", file: "patient-registration.html", roles: ["admin", "patient", "receptionist"] },
+        { name: "Appointments", icon: "📅", desc: "Schedule appointments, auto reminders (1 day before).", file: "appointment.html", roles: ["admin", "doctor", "patient", "receptionist"] },
+        { name: "Billing & Invoices", icon: "💰", desc: "Generate invoices, track payments, print.", file: "billing.html", roles: ["admin", "finance"] },
+        { name: "Inventory Management", icon: "📦", desc: "Stock, usage, waste, expiry alerts (30 days).", file: "inventory.html", roles: ["admin", "emergency"] },
+        { name: "Finance & Ledger", icon: "📊", desc: "Income/expense tracking, running balance, govt/private mode.", file: "hospital-finance.html", roles: ["admin", "finance"] },
+        { name: "Emergency & Trauma", icon: "🚑", desc: "Quick emergency registration, triage, case tracking.", file: "emergency.html", roles: ["admin", "doctor", "emergency"] },
+        { name: "QR Handover (Secure)", icon: "📱", desc: "Doctor PIN verification, handover notes, QR deactivation.", file: "qr-handover.html", roles: ["admin", "doctor"] },
+        { name: "Admin – Doctor Management", icon: "👨‍⚕️", desc: "Register doctors, auto PIN via SMS, activation status.", file: "admin-doctors.html", roles: ["admin"] },
+        { name: "Bed Management", icon: "🛏️", desc: "Total beds, occupancy, auto‑assign, cleaner reminders.", file: "bed-management.html", roles: ["admin", "emergency", "doctor"] },
+        // QR Scanner (Medical ID) – ONLY patient role (and optionally admin? but client said "patient sirf patient hi enter kar saky aur koi b nai qr mein")
+        { name: "QR Scanner (Medical ID)", icon: "🔍", desc: "Scan patient QR, view full profile (legacy).", file: "qr-system.html", roles: ["patient"] }
+    ];
+
+    const roleMap = {
+        admin: "Admin (Full Access)",
+        doctor: "Doctor",
+        finance: "Finance / Accountant",
+        patient: "Patient / Receptionist",
+        emergency: "Emergency Staff"
+    };
+
+    const ADMIN_PASSWORD = "Admin@123";
+
+    function isStrongPassword(pwd) {
+        const hasUpper = /[A-Z]/.test(pwd);
+        const hasLower = /[a-z]/.test(pwd);
+        const hasDigit = /[0-9]/.test(pwd);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+        const isLongEnough = pwd.length >= 8;
+        return hasUpper && hasLower && hasDigit && hasSpecial && isLongEnough;
+    }
+
+    let adminAuthenticated = false;
+
+    function renderGrid(role) {
+        const grid = document.getElementById('modulesGrid');
+        let allowedModules = modules.filter(module => module.roles.includes(role));
+        if (role === 'admin' && !adminAuthenticated) {
+            allowedModules = [];
+        }
+        if (allowedModules.length === 0) {
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:white; background:rgba(0,0,0,0.5); padding:2rem; border-radius:2rem;">No modules available for this role. Contact admin.</div>`;
+            return;
+        }
+        grid.innerHTML = allowedModules.map(module => `
+            <a href="${module.file}" class="card">
+                <div class="card-icon">${module.icon}</div>
+                <div class="card-title">${module.name}</div>
+                <div class="card-desc">${module.desc}</div>
+            </a>
+        `).join('');
+    }
+
+    function promptAdminPassword() {
+        const enteredPassword = prompt("Enter Admin Password (must be strong: 8+ chars, uppercase, lowercase, digit, special character):");
+        if (!enteredPassword) {
+            alert("Password required. Access denied.");
+            return false;
+        }
+        if (enteredPassword === ADMIN_PASSWORD) {
+            if (isStrongPassword(enteredPassword)) {
+                adminAuthenticated = true;
+                alert("Admin access granted.");
+                document.getElementById('roleBadge').innerText = roleMap.admin;
+                renderGrid('admin');
+                return true;
+            } else {
+                alert("The set admin password does not meet complexity requirements. Please contact system administrator to update the password.");
+                return false;
+            }
+        } else {
+            alert("Incorrect password. Access denied. Switching to default role (Doctor).");
+            adminAuthenticated = false;
+            const roleSelect = document.getElementById('roleSelect');
+            roleSelect.value = 'doctor';
+            document.getElementById('roleBadge').innerText = roleMap.doctor;
+            renderGrid('doctor');
+            return false;
+        }
+    }
+
+    function onRoleChange() {
+        const roleSelect = document.getElementById('roleSelect');
+        const selectedRole = roleSelect.value;
+        if (selectedRole === 'admin') {
+            if (adminAuthenticated) {
+                document.getElementById('roleBadge').innerText = roleMap.admin;
+                renderGrid('admin');
+            } else {
+                const success = promptAdminPassword();
+                if (!success) {
+                    roleSelect.value = 'doctor';
+                }
+            }
+        } else {
+            adminAuthenticated = false;
+            document.getElementById('roleBadge').innerText = roleMap[selectedRole];
+            renderGrid(selectedRole);
+        }
+    }
+
+    window.onload = () => {
+        const roleSelect = document.getElementById('roleSelect');
+        roleSelect.value = 'doctor';
+        document.getElementById('roleBadge').innerText = roleMap.doctor;
+        renderGrid('doctor');
+        roleSelect.addEventListener('change', onRoleChange);
+    };
+</script>
+</body>
+</html>

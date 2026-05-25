@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Finance | Govt & Private</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+        .app-container { position: relative; z-index: 1; max-width: 1300px; margin: 0 auto; }
+        .main-card {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            background: linear-gradient(120deg, #2c5a2e, #3d8b40);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .card-header h1 { color: white; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 0.3rem 1rem; border-radius: 60px; font-size: 0.8rem; }
+
+        /* Toggle Switch */
+        .mode-toggle {
+            background: white;
+            margin: 1.5rem 2rem 0 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border: 1px solid #c8e0c8;
+        }
+        .toggle-label { font-weight: 600; color: #2c5a2e; }
+        .toggle-switch {
+            display: flex;
+            gap: 1rem;
+            background: #eef4ee;
+            border-radius: 40px;
+            padding: 0.2rem;
+        }
+        .toggle-option {
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+        }
+        .toggle-option.active {
+            background: #3d8b40;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: white;
+            margin: 1.5rem 2rem;
+            padding: 1.2rem;
+            border-radius: 1.2rem;
+            border: 1px solid #d0e8d0;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .balance-amount { font-size: 2rem; font-weight: 700; color: #1b6b7a; }
+
+        .form-section, .list-section { padding: 1.8rem 2rem; }
+        .form-section { border-bottom: 1px solid #d4e8d4; }
+        .form-section h2, .list-toolbar h2 { font-size: 1.3rem; color: #2c5a2e; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .form-row { display: flex; gap: 1.5rem; margin-bottom: 5rem; flex-wrap: wrap; }
+        .field { flex: 1; min-width: 180px; }
+        .full-width { flex: 1; width: 100%; }
+        .field label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #2c5a2e; margin-bottom: 5px; display: block; }
+        .field input, .field select { width: 100%; padding: 10px 12px; border: 1px solid #c8e0c8; border-radius: 14px; }
+        .btn-submit {
+            background: #3d8b40; color: white; border: none; padding: 12px 20px;
+            border-radius: 40px; cursor: pointer; width: 100%; display: flex;
+            align-items: center; justify-content: center; gap: 8px; margin-top: 0.5rem;
+        }
+        .btn-submit:hover { background: #2c5a2e; transform: translateY(-2px); }
+        .list-toolbar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem; }
+        .search-box { display: flex; align-items: center; background: #f1f5f9; border-radius: 60px; padding: 0.2rem 0.2rem 0.2rem 1rem; border: 1px solid #cbdbe2; }
+        .search-box input { border: none; background: transparent; padding: 8px 12px; width: 220px; outline: none; }
+        .table-wrapper { overflow-x: auto; border-radius: 18px; border: 1px solid #c8e0c8; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; padding: 12px 10px; background: #e8f5e9; color: #2c5a2e; border-bottom: 2px solid #c8e0c8; }
+        td { padding: 10px 10px; border-bottom: 1px solid #e0f0e0; color: #1f3b1a; }
+        tr:hover td { background: #f4fef4; }
+        .income-row td:first-child { border-left: 3px solid #2c5a2e; }
+        .expense-row td:first-child { border-left: 3px solid #c0392b; }
+        .edit-btn, .delete-btn { border: none; padding: 4px 12px; border-radius: 30px; margin: 0 3px; cursor: pointer; }
+        .edit-btn { background: #e0f2e9; color: #1a6e3b; }
+        .delete-btn { background: #ffe4e2; color: #b33b2c; }
+        .sync-btn { background: #3d8b40; color: white; border: none; border-radius: 40px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-left: 1rem; }
+        .hidden { display: none; }
+        @media (max-width: 700px) {
+            body { padding: 0.8rem; }
+            .form-row { flex-direction: column; margin-bottom: 2rem; }
+            .mode-toggle { margin: 1rem; }
+            .balance-card { margin: 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="bg-overlay"></div>
+<div class="app-container">
+    <div class="main-card">
+        <div class="card-header">
+            <h1><i class="fas fa-chart-line"></i> Hospital Finance System</h1>
+            <span class="badge">Govt / Private Unified</span>
+        </div>
+
+        <!-- Hospital Mode Toggle -->
+        <div class="mode-toggle">
+            <span class="toggle-label"><i class="fas fa-hospital"></i> Hospital Type:</span>
+            <div class="toggle-switch">
+                <div id="govtModeBtn" class="toggle-option active">🏥 Government (Free)</div>
+                <div id="privateModeBtn" class="toggle-option">💰 Private (Billing)</div>
+            </div>
+        </div>
+
+        <!-- Current Balance -->
+        <div class="balance-card">
+            <span><i class="fas fa-wallet"></i> Available Balance (PKR)</span>
+            <span class="balance-amount" id="currentBalance">0</span>
+        </div>
+
+        <!-- Add Transaction Form -->
+        <div class="form-section">
+            <h2><i class="fas fa-exchange-alt"></i> Add Transaction</h2>
+            <form id="transactionForm">
+                <div class="form-row">
+                    <div class="field"><label>Type</label>
+                        <select id="txnType" required>
+                            <option value="income">Income (Money Received)</option>
+                            <option value="expense">Expense (Money Paid)</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Date</label><input type="date" id="txnDate" required></div>
+                    <div class="field"><label>Amount (PKR)</label><input type="number" id="txnAmount" step="0.01" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="field"><label>Category</label>
+                        <select id="txnCategory">
+                            <!-- Dynamic options will be set by JS based on mode -->
+                        </select>
+                    </div>
+                    <div class="field"><label>Person / Party Name</label><input type="text" id="txnPerson" placeholder="e.g. Dr. Ali, Govt of Pakistan, Donor Name"></div>
+                </div>
+                <div class="form-row full">
+                    <div class="field full-width"><label>Description / Reference</label><input type="text" id="txnDesc" placeholder="e.g. Monthly salary, Grant, Purchase"></div>
+                </div>
+                <button type="submit" class="btn-submit"><i class="fas fa-plus-circle"></i> Add Transaction</button>
+            </form>
+        </div>
+
+        <!-- Private Mode: Billing Sync Section (hidden by default) -->
+        <div id="billingSyncSection" class="form-section hidden">
+            <h2><i class="fas fa-file-invoice-dollar"></i> Patient Billing Integration (Private Mode)</h2>
+            <button id="syncBillingBtn" class="sync-btn"><i class="fas fa-sync-alt"></i> Sync Paid Bills from Billing Module</button>
+            <p style="margin-top: 0.5rem; font-size: 0.7rem; color: #5f7d95;">Only for Private hospitals: This will fetch all paid bills from billing.html and add as income.</p>
+        </div>
+
+        <!-- Transaction Ledger -->
+        <div class="list-section">
+            <div class="list-toolbar">
+                <h2><i class="fas fa-book"></i> Transaction Ledger</h2>
+                <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchLedger" placeholder="Search..."></div>
+            </div>
+            <div class="table-wrapper">
+                <table id="ledgerTable">
+                    <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Person/Party</th><th>Description</th><th>Amount</th><th>Balance</th><th>Actions</th></tr></thead>
+                    <tbody id="ledgerTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ======================== DATA ========================
+    let transactions = JSON.parse(localStorage.getItem('hospitalLedger')) || [];
+    let currentMode = localStorage.getItem('hospitalMode') || 'govt'; // 'govt' or 'private'
+
+    // ======================== HELPER FUNCTIONS ========================
+    function sortTransactions() {
+        transactions.sort((a,b) => {
+            if (a.date !== b.date) return a.date.localeCompare(b.date);
+            return a.id - b.id;
+        });
+    }
+
+    function updateBalanceAndRender() {
+        sortTransactions();
+        let balance = 0;
+        for (let i = 0; i < transactions.length; i++) {
+            if (transactions[i].type === 'income') balance += transactions[i].amount;
+            else balance -= transactions[i].amount;
+            transactions[i].runningBalance = balance;
+        }
+        localStorage.setItem('hospitalLedger', JSON.stringify(transactions));
+        document.getElementById('currentBalance').innerHTML = balance.toLocaleString();
+        renderLedgerTable();
+    }
+
+    function renderLedgerTable(filter = "") {
+        const tbody = document.getElementById('ledgerTableBody');
+        let filtered = transactions;
+        if (filter.trim()) {
+            filtered = transactions.filter(t =>
+                t.category.toLowerCase().includes(filter.toLowerCase()) ||
+                (t.person && t.person.toLowerCase().includes(filter.toLowerCase())) ||
+                t.description.toLowerCase().includes(filter.toLowerCase()) ||
+                t.type.includes(filter.toLowerCase())
+            );
+        }
+        tbody.innerHTML = "";
+        if (filtered.length === 0) {
+            const row = tbody.insertRow();
+            const cell = row.insertCell(0);
+            cell.colSpan = 8;
+            cell.textContent = "No transactions yet. Add your first transaction above.";
+            cell.style.textAlign = "center";
+            cell.style.padding = "2rem";
+            return;
+        }
+        filtered.forEach((tx, idx) => {
+            const row = tbody.insertRow();
+            row.className = tx.type === 'income' ? 'income-row' : 'expense-row';
+            row.insertCell(0).innerText = tx.date;
+            row.insertCell(1).innerText = tx.type === 'income' ? 'Income' : 'Expense';
+            row.insertCell(2).innerText = tx.category;
+            row.insertCell(3).innerText = tx.person || "-";
+            row.insertCell(4).innerText = tx.description;
+            let amountText = tx.type === 'income' ? `+ ${tx.amount.toLocaleString()}` : `- ${tx.amount.toLocaleString()}`;
+            row.insertCell(5).innerHTML = `<span style="color:${tx.type==='income'?'#2c5a2e':'#c0392b'}">${amountText}</span>`;
+            row.insertCell(6).innerText = tx.runningBalance.toLocaleString();
+            const actionCell = row.insertCell(7);
+            const editBtn = document.createElement('button');
+            editBtn.innerText = "Edit";
+            editBtn.className = "edit-btn";
+            editBtn.onclick = () => editTransaction(getOriginalIndex(transactions, tx.id));
+            const delBtn = document.createElement('button');
+            delBtn.innerText = "Delete";
+            delBtn.className = "delete-btn";
+            delBtn.onclick = () => deleteTransaction(getOriginalIndex(transactions, tx.id));
+            actionCell.appendChild(editBtn);
+            actionCell.appendChild(delBtn);
+        });
+    }
+
+    function getOriginalIndex(arr, id) { return arr.findIndex(t => t.id === id); }
+
+    function deleteTransaction(origIdx) {
+        if (confirm("Delete this transaction?")) {
+            transactions.splice(origIdx, 1);
+            localStorage.setItem('hospitalLedger', JSON.stringify(transactions));
+            updateBalanceAndRender();
+            renderLedgerTable(document.getElementById('searchLedger').value);
+        }
+    }
+
+    function editTransaction(origIdx) {
+        const tx = transactions[origIdx];
+        document.getElementById('txnType').value = tx.type;
+        document.getElementById('txnDate').value = tx.date;
+        document.getElementById('txnAmount').value = tx.amount;
+        // set category dropdown
+        const catSelect = document.getElementById('txnCategory');
+        for (let i = 0; i < catSelect.options.length; i++) {
+            if (catSelect.options[i].value === tx.category || catSelect.options[i].text === tx.category) {
+                catSelect.selectedIndex = i; break;
+            }
+        }
+        document.getElementById('txnPerson').value = tx.person || "";
+        document.getElementById('txnDesc').value = tx.description;
+        // remove old
+        transactions.splice(origIdx, 1);
+        localStorage.setItem('hospitalLedger', JSON.stringify(transactions));
+        updateBalanceAndRender();
+        renderLedgerTable(document.getElementById('searchLedger').value);
+    }
+
+    function addTransaction(e) {
+        e.preventDefault();
+        const type = document.getElementById('txnType').value;
+        const date = document.getElementById('txnDate').value;
+        const amount = parseFloat(document.getElementById('txnAmount').value);
+        const category = document.getElementById('txnCategory').value;
+        const person = document.getElementById('txnPerson').value.trim();
+        const description = document.getElementById('txnDesc').value.trim();
+
+        if (!date || isNaN(amount) || amount <= 0) { alert("Valid date and amount required"); return; }
+        const newTx = {
+            id: Date.now(),
+            type, date, amount, category,
+            person: person,
+            description: description || (type === 'income' ? 'Income' : 'Expense'),
+            runningBalance: 0
+        };
+        transactions.push(newTx);
+        localStorage.setItem('hospitalLedger', JSON.stringify(transactions));
+        updateBalanceAndRender();
+        document.getElementById('transactionForm').reset();
+        document.getElementById('txnDate').valueAsDate = new Date();
+        document.getElementById('txnType').value = 'income';
+    }
+
+    // Sync from billing module (only in private mode)
+    function syncFromBilling() {
+        let bills = JSON.parse(localStorage.getItem('bills')) || [];
+        let addedCount = 0;
+        bills.forEach(bill => {
+            let incomeAmount = 0;
+            if (bill.paymentStatus === 'Paid') incomeAmount = bill.amount;
+            else if (bill.paymentStatus === 'Partially Paid') incomeAmount = bill.paidAmount || 0;
+            if (incomeAmount > 0) {
+                const alreadyExists = transactions.some(t => t.description.includes(bill.id));
+                if (!alreadyExists) {
+                    transactions.push({
+                        id: Date.now() + addedCount,
+                        type: 'income',
+                        date: bill.billDate || new Date().toISOString().split('T')[0],
+                        amount: incomeAmount,
+                        category: 'Patient Billing',
+                        person: bill.patientName || '',
+                        description: `Bill ${bill.id} - ${bill.patientName}`,
+                        runningBalance: 0
+                    });
+                    addedCount++;
+                }
+            }
+        });
+        if (addedCount > 0) {
+            localStorage.setItem('hospitalLedger', JSON.stringify(transactions));
+            updateBalanceAndRender();
+            alert(`${addedCount} income entries added from paid bills.`);
+        } else { alert("No new paid bills found."); }
+    }
+
+    // Update category dropdown based on mode (govt/private)
+    function updateCategoriesForMode() {
+        const catSelect = document.getElementById('txnCategory');
+        catSelect.innerHTML = '';
+        if (currentMode === 'govt') {
+            // Govt hospital: income from government funds, donations, grants; expenses: salaries, etc.
+            const incOpts = ['Government Fund', 'Donation', 'Grant', 'Zakat', 'Other Income'];
+            const expOpts = ['Doctor Salary', 'Staff Salary', 'Inventory Purchase', 'Utility Bills', 'Rent', 'Maintenance', 'Other Expense'];
+            incOpts.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt; option.text = opt; option.className = 'income-opt';
+                catSelect.appendChild(option);
+            });
+            expOpts.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt; option.text = opt; option.className = 'expense-opt';
+                catSelect.appendChild(option);
+            });
+        } else {
+            // Private hospital: includes patient billing
+            const incOpts = ['Patient Billing', 'Government Fund', 'Donation', 'Grant', 'Other Income'];
+            const expOpts = ['Doctor Salary', 'Staff Salary', 'Inventory Purchase', 'Utility Bills', 'Rent', 'Maintenance', 'Other Expense'];
+            incOpts.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt; option.text = opt;
+                catSelect.appendChild(option);
+            });
+            expOpts.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt; option.text = opt;
+                catSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Toggle UI based on mode
+    function setMode(mode) {
+        currentMode = mode;
+        localStorage.setItem('hospitalMode', mode);
+        // Update toggle buttons appearance
+        const govtBtn = document.getElementById('govtModeBtn');
+        const privateBtn = document.getElementById('privateModeBtn');
+        if (mode === 'govt') {
+            govtBtn.classList.add('active');
+            privateBtn.classList.remove('active');
+            document.getElementById('billingSyncSection').classList.add('hidden');
+        } else {
+            govtBtn.classList.remove('active');
+            privateBtn.classList.add('active');
+            document.getElementById('billingSyncSection').classList.remove('hidden');
+        }
+        updateCategoriesForMode();
+        // Re-render ledger (no data change)
+        renderLedgerTable(document.getElementById('searchLedger').value);
+    }
+
+    // Event listeners
+    document.getElementById('govtModeBtn').addEventListener('click', () => setMode('govt'));
+    document.getElementById('privateModeBtn').addEventListener('click', () => setMode('private'));
+    document.getElementById('searchLedger').addEventListener('input', (e) => renderLedgerTable(e.target.value));
+    document.getElementById('syncBillingBtn')?.addEventListener('click', syncFromBilling);
+
+    window.onload = () => {
+        document.getElementById('txnDate').valueAsDate = new Date();
+        setMode(currentMode); // apply saved mode or default govt
+        updateBalanceAndRender();
+        document.getElementById('transactionForm').addEventListener('submit', addTransaction);
+    };
+</script>
+</body>
+</html>

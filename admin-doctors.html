@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Doctor Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 2rem;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #1e3c72; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; }
+        .form-row { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: flex-end; }
+        .field { flex: 1; min-width: 150px; }
+        label { display: block; font-size: 0.7rem; font-weight: bold; color: #2a5298; text-transform: uppercase; margin-bottom: 0.2rem; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 1rem; }
+        input:focus { outline: none; border-color: #2a5298; }
+        button {
+            background: #2a5298; color: white; border: none; padding: 10px 20px; border-radius: 2rem;
+            cursor: pointer; font-weight: bold; margin-top: 0.5rem;
+        }
+        button:hover { background: #1e3c72; }
+        .error { color: #c62828; font-size: 0.7rem; margin-top: 0.2rem; }
+        .doctor-list {
+            margin-top: 2rem;
+            border-top: 2px solid #e0e0e0;
+            padding-top: 1rem;
+        }
+        .doctor-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f4f9ff; padding: 0.8rem; border-radius: 1rem; margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .doctor-info { flex: 1; min-width: 200px; }
+        .doctor-name { font-weight: bold; }
+        .doctor-mobile { font-size: 0.8rem; color: #555; }
+        .pin-status { font-size: 0.7rem; margin-top: 0.2rem; }
+        .verified { color: #2e7d32; }
+        .pending { color: #ff9800; }
+        .expired { color: #c62828; }
+        .delete-btn { background: #c62828; color: white; border: none; padding: 4px 12px; border-radius: 2rem; cursor: pointer; }
+        .delete-btn:hover { background: #8b0000; }
+        hr { margin: 1rem 0; }
+        .info-note { font-size: 0.7rem; color: #2a5298; margin-top: 1rem; background: #e8f0fe; padding: 0.5rem; border-radius: 1rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1><i class="fas fa-user-md"></i> Admin – Doctor Management</h1>
+    <div class="form-row">
+        <div class="field">
+            <label>Doctor Name</label>
+            <input type="text" id="docName" placeholder="Dr. Sarah Khan">
+        </div>
+        <div class="field">
+            <label>Mobile Number (11 digits)</label>
+            <input type="tel" id="docMobile" placeholder="03XXXXXXXXX" maxlength="11" inputmode="numeric">
+            <div id="mobileError" class="error"></div>
+        </div>
+        <div class="field">
+            <button id="registerBtn">Register & Send PIN</button>
+        </div>
+    </div>
+    <div class="doctor-list">
+        <h3>Registered Doctors</h3>
+        <div id="doctorListContainer"></div>
+    </div>
+    <div class="info-note">
+        <i class="fas fa-info-circle"></i> <strong>Note:</strong> 
+        Doctor status becomes <strong>"Active"</strong> only after they successfully verify their PIN (using <strong>qr-handover.html</strong>).<br>
+        PIN is valid for 5 minutes. Use "Forgot PIN" option in the patient/doctor app to resend.
+    </div>
+</div>
+<script>
+    // Shared doctor database (same localStorage key as patient file)
+    let doctors = JSON.parse(localStorage.getItem('doctors')) || {};
+
+    // Helper: filter only digits, enforce exactly 11 digits
+    function enforceDigitsOnly(inputElement, errorElement) {
+        let value = inputElement.value;
+        let newValue = value.replace(/[^0-9]/g, '');
+        if (newValue !== value) {
+            inputElement.value = newValue;
+        }
+        if (newValue.length === 11 && /^[0-9]{11}$/.test(newValue)) {
+            if (errorElement) errorElement.innerText = '';
+            return true;
+        } else {
+            if (errorElement) errorElement.innerText = 'Must be exactly 11 digits (0-9)';
+            return false;
+        }
+    }
+
+    function generatePinWithExpiry() {
+        let pin = Math.floor(100000 + Math.random() * 900000).toString();
+        let expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        return { pin, expiry };
+    }
+
+    function sendSms(mobile, pin) {
+        alert(`📱 SIMULATED SMS to ${mobile}:\nYour Hospital QR PIN is: ${pin}\nValid for 5 minutes.\n(Real system would send actual SMS.)`);
+    }
+
+    function registerOrResend(name, mobile) {
+        // Validate mobile format
+        if (!/^[0-9]{11}$/.test(mobile)) {
+            document.getElementById('mobileError').innerText = 'Mobile must be exactly 11 digits (0-9)';
+            return false;
+        }
+        document.getElementById('mobileError').innerText = '';
+
+        // Check duplicate mobile with different name
+        if (doctors[mobile] && doctors[mobile].name !== name) {
+            alert(`❌ Mobile ${mobile} already registered to Dr. ${doctors[mobile].name}.`);
+            return false;
+        }
+
+        let { pin, expiry } = generatePinWithExpiry();
+        doctors[mobile] = {
+            name: name,
+            pin: pin,
+            pinExpiry: expiry,
+            mobile: mobile,
+            firstUsed: null   // not verified yet
+        };
+        localStorage.setItem('doctors', JSON.stringify(doctors));
+        sendSms(mobile, pin);
+        alert(`✅ ${name} registered. PIN ${pin} sent to ${mobile}. Valid 5 min. Status pending activation.`);
+        renderDoctorList();
+        return true;
+    }
+
+    function deleteDoctor(mobile) {
+        if (confirm(`Delete ${doctors[mobile].name}?`)) {
+            delete doctors[mobile];
+            localStorage.setItem('doctors', JSON.stringify(doctors));
+            renderDoctorList();
+        }
+    }
+
+    function renderDoctorList() {
+        let container = document.getElementById('doctorListContainer');
+        let entries = Object.entries(doctors);
+        if (entries.length === 0) { container.innerHTML = "<p>No doctors registered.</p>"; return; }
+        let html = '';
+        entries.forEach(([mob, doc]) => {
+            let now = new Date();
+            let expired = now > new Date(doc.pinExpiry);
+            let verified = doc.firstUsed !== null;
+            let statusText, statusClass;
+            if (verified && !expired) {
+                statusText = '✅ Active (verified)';
+                statusClass = 'verified';
+            } else if (!verified && !expired) {
+                statusText = '⏳ Pending activation (not yet used)';
+                statusClass = 'pending';
+            } else {
+                statusText = '❌ Expired (PIN invalid)';
+                statusClass = 'expired';
+            }
+            let lastUsed = doc.firstUsed ? new Date(doc.firstUsed).toLocaleString() : 'Never';
+            html += `
+                <div class="doctor-item">
+                    <div class="doctor-info">
+                        <div class="doctor-name">${doc.name}</div>
+                        <div class="doctor-mobile">${mob}</div>
+                        <div class="pin-status ${statusClass}">${statusText}</div>
+                        <div style="font-size:0.7rem; color:#555;">Last verified: ${lastUsed}</div>
+                    </div>
+                    <button class="delete-btn" onclick="window.deleteDoctor('${mob}')">Delete</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    // Live input validation for mobile field
+    let mobileInput = document.getElementById('docMobile');
+    let mobileError = document.getElementById('mobileError');
+    mobileInput.addEventListener('input', function() {
+        enforceDigitsOnly(this, mobileError);
+    });
+
+    document.getElementById('registerBtn').addEventListener('click', () => {
+        let name = document.getElementById('docName').value.trim();
+        let mobile = mobileInput.value.trim();
+        if (!name) { alert("Enter doctor name"); return; }
+        if (!/^[0-9]{11}$/.test(mobile)) {
+            mobileError.innerText = 'Mobile must be exactly 11 digits (0-9)';
+            return;
+        }
+        registerOrResend(name, mobile);
+        document.getElementById('docName').value = '';
+        mobileInput.value = '';
+        mobileError.innerText = '';
+    });
+
+    window.deleteDoctor = deleteDoctor;
+    renderDoctorList();
+</script>
+</body>
+</html>
